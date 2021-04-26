@@ -1,0 +1,6 @@
+regex
+asyncpg
+telethon
+opencc
+aiohttp
+toml
