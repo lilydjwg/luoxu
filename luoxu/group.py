@@ -6,8 +6,11 @@ logger = logging.getLogger(__name__)
 # TODO: fetch messages [1, 1000000)
 
 class GroupIndexer:
-  def __init__(self, group_id):
-    self.group_id = group_id
+  entity = None
+
+  def __init__(self, entity):
+    self.group_id = entity.id
+    self.entity = entity
 
   async def run(self, client, dbstore):
     group_info = await dbstore.get_group(self.group_id)
@@ -18,12 +21,13 @@ class GroupIndexer:
     else:
       start_reached = group_info['start_reached']
       last_id = await dbstore.last_id(self.group_id)
+      self.username = group_info['pub_id']
 
     while True:
       async with dbstore.transaction():
         logger.info('Fetching messages starting at %s', last_id + 1)
         msgs = await client.get_messages(
-          self.group_id,
+          self.entity,
           add_offset = -20,
           limit = 20,
           offset_id = last_id + 1,
@@ -48,7 +52,7 @@ class GroupIndexer:
 
     async with dbstore.transaction():
       msgs = await client.get_messages(
-        self.group_id,
+        self.entity,
         limit = 50,
         max_id = first_id,
       )
@@ -59,8 +63,7 @@ class GroupIndexer:
       for msg in msgs:
         await dbstore.insert_message(msg)
 
-  async def new_group(self, client, dbstore):
-    entity = await client.get_entity(self.group_id)
-    logger.info('new_group: %r', entity)
-    await dbstore.insert_group(entity)
+  async def new_group(self, dbstore):
+    logger.info('new_group: %r', self.entity)
+    await dbstore.insert_group(self.entity)
 

@@ -29,7 +29,8 @@ async def main():
   )
   await site.start()
 
-  g = GroupIndexer(1031857103)
+  group = await client.get_entity('@archlinuxcn_group')
+  g = GroupIndexer(group)
   try:
     await g.run(client, db)
   finally:

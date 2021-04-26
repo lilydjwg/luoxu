@@ -1,0 +1,7 @@
+#!/bin/bash -e
+
+cd "$(dirname "$0")"/..
+
+rsync -avi --delete --exclude='.*' --exclude='*~' --exclude=__pycache__ --exclude='*.sw?' --exclude='*.session' \
+  ./ lab:workspace/luoxu
+ssh lab tmux send-keys -t daemon:luoxu c-c c-p c-m
