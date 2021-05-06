@@ -1,3 +1,5 @@
+from asyncio import Lock
+
 from aiohttp import web
 
 from . import util
@@ -61,6 +63,7 @@ class AvatarHandler:
   def __init__(self, client) -> None:
     self.client = client
     self.cache = {}
+    self.lock = Lock()
 
   async def _get_avatar(self, uid: int) -> bytes:
     cache = self.cache
@@ -78,7 +81,8 @@ class AvatarHandler:
 
   async def get(self, request):
     uid = int(request.match_info['uid'])
-    data = await self._get_avatar(uid)
+    async with self.lock:
+      data = await self._get_avatar(uid)
     return web.Response(body=data, headers = {
       'Content-Type': 'image/jpeg',
       'Cache-Control': 'public, max-age=14400',
