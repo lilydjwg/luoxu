@@ -1,3 +1,5 @@
+import asyncio
+
 from telethon import TelegramClient
 from aiohttp import web
 
@@ -20,7 +22,7 @@ async def main():
   await db.setup()
 
   web_config = config['web']
-  app = myweb.setup_app(db, web_config['prefix'])
+  app = myweb.setup_app(db, client, web_config['prefix'])
   runner = web.AppRunner(app)
   await runner.setup()
   site = web.TCPSite(
@@ -29,10 +31,15 @@ async def main():
   )
   await site.start()
 
-  group = await client.get_entity('@archlinuxcn_group')
-  g = GroupIndexer(group)
+  group1 = await client.get_entity('@archlinuxcn_group')
+  group2 = await client.get_entity('@archlinuxcn_offtopic')
+  g1 = GroupIndexer(group1)
+  g2 = GroupIndexer(group2)
   try:
-    await g.run(client, db)
+    await asyncio.gather(
+      g1.run(client, await db.clone()),
+      g2.run(client, await db.clone()),
+    )
   finally:
     await runner.cleanup()
 

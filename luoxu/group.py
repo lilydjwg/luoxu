@@ -15,7 +15,7 @@ class GroupIndexer:
   async def run(self, client, dbstore):
     group_info = await dbstore.get_group(self.group_id)
     if group_info is None:
-      await self.new_group(client, dbstore)
+      await self.new_group(dbstore)
       start_reached = False
       last_id = 0
     else:

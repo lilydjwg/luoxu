@@ -15,6 +15,11 @@ class PostgreStore:
     self.address = address
     self.conn = None
 
+  async def clone(self):
+    new = self.__class__(self.address)
+    await new.setup()
+    return new
+
   async def setup(self) -> None:
     self.conn = await asyncpg.connect(self.address)
 
@@ -86,6 +91,10 @@ class PostgreStore:
         select * from tg_groups
         where group_id = $1'''
     return await self.conn.fetchrow(sql, group_id)
+
+  async def get_groups(self):
+    sql = '''select * from tg_groups'''
+    return await self.conn.fetch(sql)
 
   async def insert_group(self, group):
     sql = '''\

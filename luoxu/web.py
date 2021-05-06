@@ -3,22 +3,23 @@ from aiohttp import web
 from . import util
 from .types import SearchQuery, GroupNotFound
 
-class SearchHandler:
+class BaseHandler:
   def __init__(self, dbconn):
     self.dbconn = dbconn
 
+class SearchHandler(BaseHandler):
   async def get(self, request):
     try:
       q = self._parse_query(request.query)
     except Exception:
       raise web.HTTPBadRequest
     try:
-      group_name, messages = await self.dbconn.search(q)
+      group_pub_id, messages = await self.dbconn.search(q)
     except GroupNotFound:
       raise web.HTTPNotFound
 
     return web.json_response({
-      'group_name': group_name,
+      'group_pub_id': group_pub_id,
       'group_id': q.group,
       'messages': [{
         'id': m['msgid'],
@@ -43,8 +44,54 @@ class SearchHandler:
       end = util.fromtimestamp(int(end))
     return SearchQuery(group, terms, sender, start, end)
 
-def setup_app(dbconn, prefix=''):
+class GroupsHandler(BaseHandler):
+  async def get(self, request):
+    groups = await self.dbconn.get_groups()
+    return web.json_response({
+      'groups': [{
+        'group_id': g['group_id'],
+        'name': g['name'],
+        'pub_id': g['pub_id'],
+      } for g in groups],
+    }, headers = {
+      'Access-Control-Allow-Origin': '*',
+    })
+
+class AvatarHandler:
+  def __init__(self, client) -> None:
+    self.client = client
+    self.cache = {}
+
+  async def _get_avatar(self, uid: int) -> bytes:
+    cache = self.cache
+    if (data := cache.get(uid)) is not None:
+      return data
+
+    data = await self._get_avatar_real(uid)
+    cache[uid] = data
+    if len(cache) > 50:
+      del cache[cache.keys().next()]
+    return data
+
+  async def _get_avatar_real(self, uid: int) -> bytes:
+    return await self.client.download_profile_photo(uid, file=bytes)
+
+  async def get(self, request):
+    uid = int(request.match_info['uid'])
+    data = await self._get_avatar(uid)
+    return web.Response(body=data, headers = {
+      'Content-Type': 'image/jpeg',
+      'Cache-Control': 'public, max-age=14400',
+      'Content-Disposition': f'inline; filename="avatar-{uid}.jpg"',
+    })
+
+def setup_app(dbconn, client, prefix=''):
   app = web.Application()
-  handler = SearchHandler(dbconn)
-  app.router.add_get(f'{prefix}/search', handler.get)
+  app.router.add_get(f'{prefix}/search', SearchHandler(dbconn).get)
+  app.router.add_get(f'{prefix}/groups', GroupsHandler(dbconn).get)
+
+  ah = AvatarHandler(client)
+  app.router.add_get(fr'{prefix}/avatar/{{uid:\d+}}', ah.get)
+  app.router.add_get(fr'{prefix}/avatar/{{uid:\d+}}.jpg', ah.get)
+
   return app
