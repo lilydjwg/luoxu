@@ -4,6 +4,7 @@ from aiohttp import web
 
 from . import util
 from .types import SearchQuery, GroupNotFound
+from .lib.expiringdict import ExpiringDict
 
 class BaseHandler:
   def __init__(self, dbconn):
@@ -62,7 +63,8 @@ class GroupsHandler(BaseHandler):
 class AvatarHandler:
   def __init__(self, client) -> None:
     self.client = client
-    self.cache = {}
+    self.cache = ExpiringDict(14400, maxsize=50)
+    self.cache_count = 0
     self.lock = Lock()
 
   async def _get_avatar(self, uid: int) -> bytes:
@@ -72,8 +74,11 @@ class AvatarHandler:
 
     data = await self._get_avatar_real(uid)
     cache[uid] = data
-    if len(cache) > 50:
-      del cache[cache.keys().next()]
+    if self.cache_count > 10:
+      self.cache_count = 0
+      cache.expire()
+    else:
+      self.cache_count += 1
     return data
 
   async def _get_avatar_real(self, uid: int) -> bytes:
