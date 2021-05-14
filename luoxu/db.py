@@ -141,7 +141,7 @@ class PostgreStore:
       sql += f''' and textvector @@ websearch_to_tsquery('english', ${len(params)+1})'''
       params.append(text_to_query(q.terms))
     if q.sender:
-      sql += f''' and from_user_name = ${len(params)+1}'''
+      sql += f''' and from_user = ${len(params)+1}'''
       params.append(q.sender)
     if q.start:
       sql += f''' and datetime > ${len(params)+1}'''

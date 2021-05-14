@@ -38,7 +38,7 @@ class SearchHandler(BaseHandler):
   def _parse_query(self, query):
     group = int(query['g'])
     terms = query.get('q')
-    sender = query.get('sender')
+    sender = int(query.get('sender'))
     start = query.get('start')
     if start:
       start = util.fromtimestamp(int(start))
