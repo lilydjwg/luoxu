@@ -26,6 +26,7 @@ class Indexer:
       await dbstore.insert_message(conn, msg)
       if self.group_forward_history_done[msg.peer_id.channel_id]:
         await dbstore.loaded_upto(conn, msg.peer_id.channel_id, 1, msg.id)
+    await msg.mark_read()
 
   async def run(self):
     config = self.config
