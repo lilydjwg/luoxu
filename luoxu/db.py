@@ -55,8 +55,8 @@ class PostgreStore:
     if r is None: # non-existent
       await conn.execute(
         '''insert into messages
-          (group_id, msgid, from_user, from_user_name, text, textvector, created_at) values
-          ($1,       $2,    $3,        $4,             $5,   to_tsvector('english', $6), $7) ''',
+          (group_id, msgid, from_user, from_user_name, text, textvector, created_at, updated_at) values
+          ($1,       $2,    $3,        $4,             $5,   to_tsvector('english', $6), $7, $8) ''',
         msg.peer_id.channel_id,
         msg.id,
         u.id if u else None,
@@ -64,10 +64,11 @@ class PostgreStore:
         text,
         vector,
         msg.date,
+        msg.edit_date,
       )
-      logger.debug('inserted [%s] %s', msg.id, text)
+      logger.info('inserted <%s> [%s] %s', msg.chat.title, msg.id, text)
     else:
-      logger.debug('updated [%s] %s', msg.id, text)
+      logger.info('updated <%s> [%s] %s', msg.chat.title, msg.id, text)
 
   async def get_group(self, conn, group_id: int):
     sql = '''\

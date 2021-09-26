@@ -24,8 +24,8 @@ class Indexer:
     dbstore = self.dbstore
     async with dbstore.get_conn() as conn:
       await dbstore.insert_message(conn, msg)
-      if self.group_forward_history_done[msg.chat_id]:
-        await dbstore.loaded_upto(conn, msg.chat_id, 1, msg.id)
+      if self.group_forward_history_done[msg.peer_id.channel_id]:
+        await dbstore.loaded_upto(conn, msg.peer_id.channel_id, 1, msg.id)
 
   async def run(self):
     config = self.config
@@ -67,7 +67,7 @@ class Indexer:
       gi = GroupHistoryIndexer(group, ginfo)
       runnables.append(gi.run(
         client, db,
-        partial(operator.setitem, self.group_forward_history_done[group.id], True)
+        partial(operator.setitem, self.group_forward_history_done, group.id, True)
       ))
 
     client.add_event_handler(self.on_message, events.NewMessage(chats=index_group_ids))
@@ -75,13 +75,12 @@ class Indexer:
 
     try:
       await asyncio.gather(*runnables)
+      await client.run_until_disconnected()
     finally:
       await runner.cleanup()
 
-    await client.run_until_disconnected()
-
   async def init_group(self, group):
-    logger.info('init_group: %r', group)
+    logger.info('init_group: %r', group.title)
     async with self.dbstore.get_conn() as conn:
       return await self.dbstore.insert_group(conn, group)
 

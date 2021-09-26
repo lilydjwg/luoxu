@@ -41,6 +41,9 @@ class GroupHistoryIndexer:
 
     # going backward
     last_id = first_id
+    if last_id == 1:
+      return
+
     while True:
       async with dbstore.get_conn() as conn:
         msgs = await client.get_messages(
