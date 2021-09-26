@@ -1,69 +1,58 @@
-import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
 
-# TODO: fetch messages [1, 1000000)
-
-class GroupIndexer:
+class GroupHistoryIndexer:
   entity = None
 
-  def __init__(self, entity):
+  def __init__(self, entity, group_info):
     self.group_id = entity.id
     self.entity = entity
+    self.group_info = group_info
 
-  async def run(self, client, dbstore):
-    group_info = await dbstore.get_group(self.group_id)
-    if group_info is None:
-      await self.new_group(dbstore)
-      start_reached = False
-      last_id = 0
+  async def run(self, client, dbstore, callback):
+    group_info = self.group_info
+    if group_info['loaded_last_id'] is None:
+      first_id = last_id = 0
     else:
-      start_reached = group_info['start_reached']
-      last_id = await dbstore.last_id(self.group_id)
-      self.username = group_info['pub_id']
+      first_id = self.group_info['loaded_first_id']
+      last_id = self.group_info['loaded_last_id']
 
+    # going forward
     while True:
-      async with dbstore.transaction():
-        logger.info('Fetching messages starting at %s', last_id + 1)
+      async with dbstore.get_conn() as conn:
         msgs = await client.get_messages(
           self.entity,
-          add_offset = -20,
-          limit = 20,
-          offset_id = last_id + 1,
+          limit = 50,
+          # from current to newer (or latest)
+          min_id = last_id,
         )
-        for msg in reversed(msgs):
-          await dbstore.insert_message(msg)
-      if not msgs:
-        if start_reached:
-          await asyncio.sleep(10)
-        else:
-          ret = await self.run_history(client, dbstore)
-          if ret:
-            start_reached = True
-      else:
-        await dbstore.updated(self.group_id)
+        if not msgs:
+          break
+        for msg in msgs:
+          await dbstore.insert_message(conn, msg)
         last_id = msgs[0].id
+        await dbstore.loaded_upto(conn, self.group_id, 1, last_id)
+        if not first_id:
+          first_id = msgs[-1].id
+          await dbstore.loaded_upto(conn, self.group_id, -1, first_id)
 
-  async def run_history(self, client, dbstore):
-    first_id = await dbstore.first_id(self.group_id)
-    if first_id == 0:
-      return
+    callback()
 
-    async with dbstore.transaction():
-      msgs = await client.get_messages(
-        self.entity,
-        limit = 50,
-        max_id = first_id,
-      )
-      if not msgs:
-        await dbstore.group_done(self.group_id)
-        return True
+    # going backward
+    last_id = first_id
+    while True:
+      async with dbstore.get_conn() as conn:
+        msgs = await client.get_messages(
+          self.entity,
+          limit = 50,
+          # from current (or latest) to older
+          max_id = last_id,
+        )
+        if not msgs:
+          break
+        for msg in msgs:
+          await dbstore.insert_message(conn, msg)
 
-      for msg in msgs:
-        await dbstore.insert_message(msg)
-
-  async def new_group(self, dbstore):
-    logger.info('new_group: %r', self.entity)
-    await dbstore.insert_group(self.entity)
-
+        last_id = msgs[-1].id
+        await dbstore.loaded_upto(conn, self.group_id, -1, last_id)

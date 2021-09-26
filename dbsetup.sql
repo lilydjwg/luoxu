@@ -2,8 +2,8 @@ create table tg_groups (
   group_id integer unique not null primary key,
   name text not null,
   pub_id text,
-  start_reached boolean not null default false,
-  last_sync_dt timestamp with time zone
+  loaded_first_id integer,
+  loaded_last_id integer
 );
 
 create table messages (
@@ -14,8 +14,9 @@ create table messages (
   from_user_name text not null,
   text text not null,
   textvector tsvector not null,
-  datetime timestamp with time zone not null
+  created_at timestamp with time zone not null,
+  updated_at timestamp with time zone
 );
 
-create index messages_datetime_idx on messages (datetime);
+create index messages_datetime_idx on messages (created_at);
 create index messages_msgid_idx on messages (msgid);

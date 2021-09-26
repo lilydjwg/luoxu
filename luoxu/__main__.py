@@ -1,47 +1,89 @@
 import asyncio
+import logging
+import operator
+from functools import partial
 
-from telethon import TelegramClient
+from telethon import TelegramClient, events
 from aiohttp import web
 
 from .db import PostgreStore
-from .group import GroupIndexer
+from .group import GroupHistoryIndexer
 from .util import load_config
 from . import web as myweb
 
-async def main():
-  config = load_config('config.toml')
-  tg_config = config['telegram']
+logger = logging.getLogger(__name__)
 
-  client = TelegramClient(
-    tg_config['session_db'],
-    tg_config['api_id'],
-    tg_config['api_hash'])
-  await client.start(tg_config['account'])
+class Indexer:
+  def __init__(self, config):
+    self.config = config
+    self.group_forward_history_done = {}
+    self.dbstore = None
 
-  db = PostgreStore(config['database']['url'])
-  await db.setup()
+  async def on_message(self, event):
+    msg = event.message
+    dbstore = self.dbstore
+    async with dbstore.get_conn() as conn:
+      await dbstore.insert_message(conn, msg)
+      if self.group_forward_history_done[msg.chat_id]:
+        await dbstore.loaded_upto(conn, msg.chat_id, 1, msg.id)
 
-  web_config = config['web']
-  app = myweb.setup_app(db, client, web_config['prefix'])
-  runner = web.AppRunner(app)
-  await runner.setup()
-  site = web.TCPSite(
-    runner,
-    web_config['listen_host'], web_config['listen_port'],
-  )
-  await site.start()
+  async def run(self):
+    config = self.config
+    tg_config = config['telegram']
 
-  group1 = await client.get_entity('@archlinuxcn_group')
-  group2 = await client.get_entity('@archlinuxcn_offtopic')
-  g1 = GroupIndexer(group1)
-  g2 = GroupIndexer(group2)
-  try:
-    await asyncio.gather(
-      g1.run(client, await db.clone()),
-      g2.run(client, await db.clone()),
+    client = TelegramClient(
+      tg_config['session_db'],
+      tg_config['api_id'],
+      tg_config['api_hash'])
+    if proxy := tg_config.get('proxy'):
+      import socks
+      client.set_proxy((socks.SOCKS5, proxy[0], int(proxy[1])))
+    await client.start(tg_config['account'])
+
+    db = PostgreStore(config['database']['url'])
+    await db.setup()
+    self.dbstore = db
+
+    web_config = config['web']
+    app = myweb.setup_app(db, client, web_config['prefix'])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(
+      runner,
+      web_config['listen_host'], web_config['listen_port'],
     )
-  finally:
-    await runner.cleanup()
+    await site.start()
+
+    runnables = []
+    index_group_ids = []
+    for g in tg_config['index_groups']:
+      if not g.startswith('@'):
+        g = int(g)
+      group = await client.get_entity(g)
+      index_group_ids.append(group.id)
+      self.group_forward_history_done[group.id] = False
+
+      ginfo = await self.init_group(group)
+      gi = GroupHistoryIndexer(group, ginfo)
+      runnables.append(gi.run(
+        client, db,
+        partial(operator.setitem, self.group_forward_history_done[group.id], True)
+      ))
+
+    client.add_event_handler(self.on_message, events.NewMessage(chats=index_group_ids))
+    client.add_event_handler(self.on_message, events.MessageEdited(chats=index_group_ids))
+
+    try:
+      await asyncio.gather(*runnables)
+    finally:
+      await runner.cleanup()
+
+    await client.run_until_disconnected()
+
+  async def init_group(self, group):
+    logger.info('init_group: %r', group)
+    async with self.dbstore.get_conn() as conn:
+      return await self.dbstore.insert_group(conn, group)
 
 if __name__ == '__main__':
   from .lib.nicelogger import enable_pretty_logging
@@ -49,4 +91,7 @@ if __name__ == '__main__':
   # enable_pretty_logging('INFO')
 
   from .util import run_until_sigint
-  run_until_sigint(main())
+
+  config = load_config('config.toml')
+  indexer = Indexer(config)
+  run_until_sigint(indexer.run())

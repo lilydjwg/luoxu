@@ -29,7 +29,8 @@ class SearchHandler(BaseHandler):
         'from_id': m['from_user'],
         'from_name': m['from_user_name'],
         'text': m['text'],
-        't': m['datetime'].timestamp(),
+        't': m['created_at'].timestamp(),
+        'edited': m['updated_at'] and m['updated_at'].timestamp() or None,
       } for m in messages],
     }, headers = {
       'Access-Control-Allow-Origin': '*',
@@ -38,7 +39,7 @@ class SearchHandler(BaseHandler):
   def _parse_query(self, query):
     group = int(query['g'])
     terms = query.get('q')
-    sender = int(query.get('sender'))
+    sender = int(query.get('sender', 0))
     start = query.get('start')
     if start:
       start = util.fromtimestamp(int(start))
