@@ -1,0 +1,19 @@
+[telegram]
+api_id = 10000
+api_hash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+account = "+1234567890"
+session_db = "mybot"
+index_groups = [
+  "@group1",
+  "@group2",
+]
+# socks5 proxy
+# proxy = ["127.0.0.1", "1080"]
+
+[database]
+url = "postgresql:///luoxu"
+
+[web]
+listen_host = "localhost"
+listen_port = 9008
+prefix = "/luoxu"
