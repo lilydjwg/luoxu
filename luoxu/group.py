@@ -20,15 +20,16 @@ class GroupHistoryIndexer:
 
     # going forward
     while True:
+      msgs = await client.get_messages(
+        self.entity,
+        limit = 50,
+        # from current to newer (or latest)
+        min_id = last_id,
+      )
+      if not msgs:
+        break
+
       async with dbstore.get_conn() as conn:
-        msgs = await client.get_messages(
-          self.entity,
-          limit = 50,
-          # from current to newer (or latest)
-          min_id = last_id,
-        )
-        if not msgs:
-          break
         for msg in msgs:
           await dbstore.insert_message(conn, msg)
         last_id = msgs[0].id
@@ -45,15 +46,16 @@ class GroupHistoryIndexer:
       return
 
     while True:
+      msgs = await client.get_messages(
+        self.entity,
+        limit = 50,
+        # from current (or latest) to older
+        max_id = last_id,
+      )
+      if not msgs:
+        break
+
       async with dbstore.get_conn() as conn:
-        msgs = await client.get_messages(
-          self.entity,
-          limit = 50,
-          # from current (or latest) to older
-          max_id = last_id,
-        )
-        if not msgs:
-          break
         for msg in msgs:
           await dbstore.insert_message(conn, msg)
 
