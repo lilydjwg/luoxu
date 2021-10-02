@@ -24,6 +24,7 @@ class SearchHandler(BaseHandler):
     return web.json_response({
       'group_pub_id': group_pub_id,
       'group_id': q.group,
+      'has_more': len(messages) == self.dbconn.SEARCH_LIMIT,
       'messages': [{
         'id': m['msgid'],
         'from_id': m['from_user'],

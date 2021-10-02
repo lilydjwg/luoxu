@@ -12,6 +12,8 @@ from .types import SearchQuery, GroupNotFound
 logger = logging.getLogger(__name__)
 
 class PostgreStore:
+  SEARCH_LIMIT = 50
+
   def __init__(self, address: str) -> None:
     self.address = address
     self.pool = None
@@ -133,7 +135,7 @@ class PostgreStore:
         sql += f''' and created_at < ${len(params)+1}'''
         params.append(q.end)
 
-      sql += ' order by created_at desc limit 50'
+      sql += f' order by created_at desc limit {self.SEARCH_LIMIT}'
       logger.debug('searching: %s: %s', sql, params)
       rows = await conn.fetch(sql, *params)
       return group['pub_id'], rows
