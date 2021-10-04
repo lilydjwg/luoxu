@@ -1,3 +1,4 @@
+import os
 import asyncio
 import logging
 import operator
@@ -46,7 +47,14 @@ class Indexer:
     self.dbstore = db
 
     web_config = config['web']
-    app = myweb.setup_app(db, client, web_config['prefix'])
+    cache_dir = web_config['cache_dir']
+    os.makedirs(cache_dir, exist_ok=True)
+    app = myweb.setup_app(
+      db, client,
+      os.path.abspath(cache_dir),
+      os.path.abspath(web_config['default_avatar']),
+      prefix=web_config['prefix'],
+    )
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(

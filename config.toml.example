@@ -17,3 +17,7 @@ url = "postgresql:///luoxu"
 listen_host = "localhost"
 listen_port = 9008
 prefix = "/luoxu"
+cache_dir = "cache"
+default_avatar = "nobody.jpg"
+
+# vim: se ft=toml:

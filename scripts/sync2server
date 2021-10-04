@@ -3,5 +3,6 @@
 cd "$(dirname "$0")"/..
 
 rsync -avi --delete --exclude='.*' --exclude='*~' --exclude=__pycache__ --exclude='*.sw?' --exclude='*.session*' \
+  --exclude=cache \
   ./ lab:workspace/luoxu
 ssh lab tmux send-keys -t daemon:luoxu c-c c-p c-m
