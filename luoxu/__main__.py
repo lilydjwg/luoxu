@@ -53,6 +53,7 @@ class Indexer:
       db, client,
       os.path.abspath(cache_dir),
       os.path.abspath(web_config['default_avatar']),
+      os.path.abspath(web_config['ghost_avatar']),
       prefix=web_config['prefix'],
     )
     runner = web.AppRunner(app)

@@ -19,5 +19,6 @@ listen_port = 9008
 prefix = "/luoxu"
 cache_dir = "cache"
 default_avatar = "nobody.jpg"
+ghost_avatar = "ghost.jpg"
 
 # vim: se ft=toml:
