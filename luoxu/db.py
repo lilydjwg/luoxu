@@ -145,3 +145,18 @@ class PostgreStore:
       sql = '''select * from tg_groups'''
       return await conn.fetch(sql)
 
+  async def find_names(self, group: int, q: str) -> list[tuple[str, str]]:
+    async with self.get_conn() as conn:
+      sql = '''\
+          with cte as (
+            select row_number() over
+                (partition by from_user, from_user_name order by id desc) as rn,
+              from_user, from_user_name
+            from messages
+            where from_user_name ilike $1 and group_id = $2
+            order by id desc)
+          select * from cte
+          where rn = 1 limit 10'''
+      return [(r['from_user'], r['from_user_name'])
+              for r in await conn.fetch(sql, f'%{q}%', group)]
+

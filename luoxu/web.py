@@ -67,6 +67,18 @@ class GroupsHandler(BaseHandler):
       'Access-Control-Allow-Origin': '*',
     })
 
+class NamesHandler(BaseHandler):
+  async def get(self, request):
+    group = int(request.query['g'])
+    q = request.query['q']
+    names = await self.dbconn.find_names(group, q)
+    return web.json_response({
+      'names': names,
+    }, headers = {
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=86400',
+    })
+
 class AvatarHandler:
   def __init__(self, client, cache_dir, default_avatar: str, ghost_avatar: str) -> None:
     self.client = client
@@ -123,6 +135,7 @@ def setup_app(dbconn, client, cache_dir, default_avatar, ghost_avatar, prefix=''
   app = web.Application()
   app.router.add_get(f'{prefix}/search', SearchHandler(dbconn).get)
   app.router.add_get(f'{prefix}/groups', GroupsHandler(dbconn).get)
+  app.router.add_get(f'{prefix}/names', NamesHandler(dbconn).get)
 
   ah = AvatarHandler(client, cache_dir, default_avatar, ghost_avatar)
   app.router.add_get(fr'{prefix}/avatar/{{uid:\d+}}.jpg', ah.get)
