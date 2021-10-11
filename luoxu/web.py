@@ -98,7 +98,7 @@ class AvatarHandler:
         async with self.lock:
           file = await self._get_avatar(u)
         logger.debug('avatar for %s is at %s', uid, file)
-        name = uid_str
+        name = u.username or uid_str
       if not file:
         raise web.HTTPTemporaryRedirect(f'{name}.jpg', headers = {
           'Cache-Control': 'public, max-age=14400',
