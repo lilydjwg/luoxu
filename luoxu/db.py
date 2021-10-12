@@ -6,7 +6,7 @@ import asyncpg
 import telethon
 
 from .util import format_name
-from .indexing import text_to_vector, text_to_query
+from .indexing import text_to_query
 from .types import SearchQuery, GroupNotFound
 
 logger = logging.getLogger(__name__)
@@ -48,23 +48,21 @@ class PostgreStore:
         if getattr(a, 'performer', None) and getattr(a, 'title', None):
           text.append(f'[audio] {a.title} - {a.performer}')
     text = '\n'.join(x for x in text if x)
-    vector = text_to_vector(text)
 
     r = await conn.fetchrow(
-      '''update messages set text = $1, textvector = $2, updated_at = $3
-        where msgid = $4 returning id''',
-      text, vector, msg.edit_date, msg.id)
+      '''update messages set text = $1, updated_at = $2
+         where msgid = $3 returning id''',
+      text, msg.edit_date, msg.id)
     if r is None: # non-existent
       await conn.execute(
         '''insert into messages
-          (group_id, msgid, from_user, from_user_name, text, textvector, created_at, updated_at) values
-          ($1,       $2,    $3,        $4,             $5,   to_tsvector('english', $6), $7, $8) ''',
+          (group_id, msgid, from_user, from_user_name, text, created_at, updated_at) values
+          ($1,       $2,    $3,        $4,             $5,   $6, $7) ''',
         msg.peer_id.channel_id,
         msg.id,
         u.id if u else None,
         format_name(u),
         text,
-        vector,
         msg.date,
         msg.edit_date,
       )
@@ -115,16 +113,15 @@ class PostgreStore:
       if not group:
         raise GroupNotFound(q.group)
 
-      sql = '''
-        select
-          msgid, from_user, from_user_name, text, created_at, updated_at
-        from messages where
-        group_id = $1
-      '''
+      cols = ['msgid', 'from_user', 'from_user_name', 'text', 'created_at', 'updated_at']
+      sql = '''select {} from messages where group_id = $1'''
       params = [q.group]
       if q.terms:
-        sql += f''' and textvector @@ websearch_to_tsquery('english', ${len(params)+1})'''
-        params.append(text_to_query(q.terms))
+        query = text_to_query(q.terms)
+        sql += f''' and text &@~ ${len(params)+1}'''
+        params.append(query)
+        cols.append(f'''pgroonga_highlight_html(text, pgroonga_query_extract_keywords(${len(params)+1}), 'message_idx') as html''')
+        params.append(query)
       if q.sender:
         sql += f''' and from_user = ${len(params)+1}'''
         params.append(q.sender)
@@ -136,6 +133,7 @@ class PostgreStore:
         params.append(q.end)
 
       sql += f' order by created_at desc limit {self.SEARCH_LIMIT}'
+      sql = sql.format(', '.join(cols))
       logger.debug('searching: %s: %s', sql, params)
       rows = await conn.fetch(sql, *params)
       return group['pub_id'], rows
@@ -153,7 +151,7 @@ class PostgreStore:
                 (partition by from_user, from_user_name order by id desc) as rn,
               from_user, from_user_name
             from messages
-            where from_user_name ilike $1 and group_id = $2
+            where from_user_name &@ $1 and group_id = $2
             order by id desc)
           select * from cte
           where rn = 1 limit 10'''

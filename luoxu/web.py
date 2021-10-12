@@ -34,6 +34,7 @@ class SearchHandler(BaseHandler):
         'from_id': m['from_user'],
         'from_name': m['from_user_name'],
         'text': m['text'],
+        'html': m.get('html'),
         't': m['created_at'].timestamp(),
         'edited': m['updated_at'] and m['updated_at'].timestamp() or None,
       } for m in messages],

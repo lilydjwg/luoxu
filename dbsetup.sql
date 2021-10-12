@@ -13,10 +13,12 @@ create table messages (
   from_user integer,
   from_user_name text not null,
   text text not null,
-  textvector tsvector not null,
   created_at timestamp with time zone not null,
   updated_at timestamp with time zone
 );
 
 create index messages_datetime_idx on messages (created_at);
 create index messages_msgid_idx on messages (msgid);
+
+CREATE INDEX user_name_idx ON messages USING pgroonga (from_user_name) WITH (tokenizer='TokenBigramSplitSymbolAlphaDigit');
+CREATE INDEX message_idx ON messages USING pgroonga (text) WITH (tokenizer='TokenBigramIgnoreBlank');
