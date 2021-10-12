@@ -156,5 +156,5 @@ class PostgreStore:
           select * from cte
           where rn = 1 limit 10'''
       return [(r['from_user'], r['from_user_name'])
-              for r in await conn.fetch(sql, f'%{q}%', group)]
+              for r in await conn.fetch(sql, q, group)]
 
