@@ -116,7 +116,9 @@ class AvatarHandler:
         raise web.HTTPTemporaryRedirect(f'{name}.jpg', headers = {
           'Cache-Control': 'public, max-age=14400',
         })
+      max_age = 14400
     elif name := request.match_info.get('name'):
+      max_age = 86400 * 365
       if name == 'ghost':
         file = self.ghost_avatar
       elif name == 'nobody':
@@ -128,7 +130,7 @@ class AvatarHandler:
 
     return web.FileResponse(path=file, headers = {
       'Content-Type': 'image/jpeg',
-      'Cache-Control': 'public, max-age=14400',
+      'Cache-Control': f'public, max-age={max_age}',
       'Content-Disposition': f'inline; filename="avatar-{name}.jpg"',
     })
 
