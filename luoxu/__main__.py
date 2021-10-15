@@ -96,8 +96,8 @@ class Indexer:
 
 if __name__ == '__main__':
   from .lib.nicelogger import enable_pretty_logging
-  enable_pretty_logging('DEBUG')
-  # enable_pretty_logging('INFO')
+  # enable_pretty_logging('DEBUG')
+  enable_pretty_logging('INFO')
 
   from .util import run_until_sigint
 

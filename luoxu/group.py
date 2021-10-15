@@ -24,6 +24,7 @@ class GroupHistoryIndexer:
         self.entity,
         limit = 50,
         # from current to newer (or latest)
+        reverse = True,
         min_id = last_id,
       )
       if not msgs:
@@ -32,10 +33,10 @@ class GroupHistoryIndexer:
       async with dbstore.get_conn() as conn:
         for msg in msgs:
           await dbstore.insert_message(conn, msg)
-        last_id = msgs[0].id
+        last_id = msgs[-1].id
         await dbstore.loaded_upto(conn, self.group_id, 1, last_id)
         if not first_id:
-          first_id = msgs[-1].id
+          first_id = msgs[0].id
           await dbstore.loaded_upto(conn, self.group_id, -1, first_id)
 
     callback()
