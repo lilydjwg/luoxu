@@ -117,7 +117,9 @@ class PostgreStore:
       sql = '''select {} from messages where group_id = $1'''
       params = [q.group]
       if q.terms:
-        query = text_to_query(q.terms)
+        query = text_to_query(q.terms.strip())
+        if not query:
+          raise ValueError
         sql += f''' and text &@~ ${len(params)+1}'''
         params.append(query)
         cols.append(f'''pgroonga_highlight_html(text, pgroonga_query_extract_keywords(${len(params)+1})) as html''')
@@ -144,6 +146,9 @@ class PostgreStore:
       return await conn.fetch(sql)
 
   async def find_names(self, group: int, q: str) -> list[tuple[str, str]]:
+    q = q.strip()
+    if not q:
+      raise ValueError
     async with self.get_conn() as conn:
       sql = '''\
           with cte as (
