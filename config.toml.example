@@ -20,5 +20,7 @@ prefix = "/luoxu"
 cache_dir = "cache"
 default_avatar = "nobody.jpg"
 ghost_avatar = "ghost.jpg"
-
+origins = [
+  "http://localhost",
+]
 # vim: se ft=toml:

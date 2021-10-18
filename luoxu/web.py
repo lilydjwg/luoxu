@@ -14,8 +14,24 @@ class BaseHandler:
   def __init__(self, dbconn):
     self.dbconn = dbconn
 
-class SearchHandler(BaseHandler):
   async def get(self, request):
+    origin = request.headers.get('Origin')
+    if origin and origin not in request.config_dict['origins']:
+      raise web.HTTPBadRequest
+
+    res = await self._get(request)
+    if origin:
+      res.headers.setdefault(
+        'Access-Control-Allow-Origin', origin
+      )
+      res.headers.setdefault(
+        'Vary', 'Origin'
+      )
+
+    return res
+
+class SearchHandler(BaseHandler):
+  async def _get(self, request):
     try:
       q = self._parse_query(request.query)
     except Exception:
@@ -39,8 +55,7 @@ class SearchHandler(BaseHandler):
         'edited': m['updated_at'] and m['updated_at'].timestamp() or None,
       } for m in messages],
     }, headers = {
-      'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'public, max-age=0',
+      'Cache-Control': 'max-age=0',
     })
 
   def _parse_query(self, query):
@@ -56,7 +71,7 @@ class SearchHandler(BaseHandler):
     return SearchQuery(group, terms, sender, start, end)
 
 class GroupsHandler(BaseHandler):
-  async def get(self, request):
+  async def _get(self, request):
     groups = await self.dbconn.get_groups()
     return web.json_response({
       'groups': [{
@@ -64,20 +79,17 @@ class GroupsHandler(BaseHandler):
         'name': g['name'],
         'pub_id': g['pub_id'],
       } for g in groups],
-    }, headers = {
-      'Access-Control-Allow-Origin': '*',
     })
 
 class NamesHandler(BaseHandler):
-  async def get(self, request):
+  async def _get(self, request):
     group = int(request.query['g'])
     q = request.query['q']
     names = await self.dbconn.find_names(group, q)
     return web.json_response({
       'names': names,
     }, headers = {
-      'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'public, max-age=86400',
+      'Cache-Control': 's-maxage=0, max-age=86400',
     })
 
 class AvatarHandler:
@@ -134,8 +146,15 @@ class AvatarHandler:
       'Content-Disposition': f'inline; filename="avatar-{name}.jpg"',
     })
 
-def setup_app(dbconn, client, cache_dir, default_avatar, ghost_avatar, prefix=''):
+def setup_app(
+  dbconn, client, cache_dir,
+  default_avatar, ghost_avatar,
+  *,
+  prefix = '',
+  origins = (),
+):
   app = web.Application()
+  app['origins'] = origins
   app.router.add_get(f'{prefix}/search', SearchHandler(dbconn).get)
   app.router.add_get(f'{prefix}/groups', GroupsHandler(dbconn).get)
   app.router.add_get(f'{prefix}/names', NamesHandler(dbconn).get)

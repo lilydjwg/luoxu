@@ -54,7 +54,8 @@ class Indexer:
       os.path.abspath(cache_dir),
       os.path.abspath(web_config['default_avatar']),
       os.path.abspath(web_config['ghost_avatar']),
-      prefix=web_config['prefix'],
+      prefix = web_config['prefix'],
+      origins = web_config['origins'],
     )
     runner = web.AppRunner(app)
     await runner.setup()
