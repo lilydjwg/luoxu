@@ -137,6 +137,8 @@ class PostgreStore:
         params.append(query)
         cols.append(f'''pgroonga_highlight_html(text, pgroonga_query_extract_keywords(${len(params)+1}), 'message_idx') as html''')
         params.append(query)
+      else:
+        cols.append('text')
       if q.sender:
         sql += f''' and from_user = ${len(params)+1}'''
         params.append(q.sender)

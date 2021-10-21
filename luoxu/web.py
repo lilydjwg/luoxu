@@ -1,6 +1,7 @@
 from asyncio import Lock
 import os
 import logging
+from html import escape as htmlescape
 
 from aiohttp import web
 from telethon.tl.types import User
@@ -30,6 +31,13 @@ class BaseHandler:
 
     return res
 
+def html_or_text(m):
+  if r := m.get('html'):
+    return r
+  if r := m.get('text'):
+    return htmlescape(r)
+  return ' '
+
 class SearchHandler(BaseHandler):
   async def _get(self, request):
     try:
@@ -49,7 +57,7 @@ class SearchHandler(BaseHandler):
         'from_id': m['from_user'],
         'from_name': m['from_user_name'],
         'group_id': m['group_id'],
-        'html': m.get('html'),
+        'html': html_or_text(m),
         't': m['created_at'].timestamp(),
         'edited': m['updated_at'] and m['updated_at'].timestamp() or None,
       } for m in messages],
