@@ -114,7 +114,7 @@ class AvatarHandler:
     if uid_str := request.match_info.get('uid'):
       uid = int(uid_str)
       u = await self.client.get_entity(uid)
-      if u.deleted:
+      if getattr(u, 'deleted', False):
         name = 'ghost'
         file = None
       elif not u.photo:
