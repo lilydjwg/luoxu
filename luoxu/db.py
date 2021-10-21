@@ -51,8 +51,8 @@ class PostgreStore:
 
     r = await conn.fetchrow(
       '''update messages set text = $1, updated_at = $2
-         where msgid = $3 returning id''',
-      text, msg.edit_date, msg.id)
+         where msgid = $3 and group_id = $4 returning id''',
+      text, msg.edit_date, msg.id, msg.chat.id)
     if r is None: # non-existent
       await conn.execute(
         '''insert into messages
