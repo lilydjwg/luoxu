@@ -122,8 +122,7 @@ class PostgreStore:
         groupinfo = {row['group_id']: [row['pub_id'], row['name']] for row in rows}
 
       cols = [
-        'msgid', 'group_id', 'from_user', 'from_user_name', 'text',
-        'created_at', 'updated_at',
+        'msgid', 'group_id', 'from_user', 'from_user_name', 'created_at', 'updated_at',
       ]
       sql = '''select {} from messages where 1 = 1'''
       params = []
