@@ -102,6 +102,13 @@ if __name__ == '__main__':
 
   from .util import run_until_sigint
 
-  config = load_config('config.toml')
+  import argparse
+
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--config', default='config.toml',
+                      help='config file path')
+  args = parser.parse_args()
+
+  config = load_config(args.config)
   indexer = Indexer(config)
   run_until_sigint(indexer.run())

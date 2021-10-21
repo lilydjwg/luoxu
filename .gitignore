@@ -1,3 +1,4 @@
 config.toml
+local.toml
 *.session
 *.session-journal
