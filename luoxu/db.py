@@ -109,13 +109,27 @@ class PostgreStore:
 
   async def search(self, q: SearchQuery) -> list[dict]:
     async with self.get_conn() as conn:
-      group = await self.get_group(conn, q.group)
-      if not group:
-        raise GroupNotFound(q.group)
+      if q.group:
+        group = await self.get_group(conn, q.group)
+        if not group:
+          raise GroupNotFound(q.group)
+        groupinfo = {
+          q.group: [group['pub_id'], group['name']],
+        }
+      else:
+        sql = '''select group_id, pub_id, name from tg_groups'''
+        rows = await conn.fetch(sql)
+        groupinfo = {row['group_id']: [row['pub_id'], row['name']] for row in rows}
 
-      cols = ['msgid', 'from_user', 'from_user_name', 'text', 'created_at', 'updated_at']
-      sql = '''select {} from messages where group_id = $1'''
-      params = [q.group]
+      cols = [
+        'msgid', 'group_id', 'from_user', 'from_user_name', 'text',
+        'created_at', 'updated_at',
+      ]
+      sql = '''select {} from messages where 1 = 1'''
+      params = []
+      if q.group:
+        sql += f''' and group_id = ${len(params)+1}'''
+        params.append(q.group)
       if q.terms:
         query = text_to_query(q.terms.strip())
         if not query:
@@ -138,7 +152,7 @@ class PostgreStore:
       sql = sql.format(', '.join(cols))
       logger.debug('searching: %s: %s', sql, params)
       rows = await conn.fetch(sql, *params)
-      return group['pub_id'], rows
+      return groupinfo, rows
 
   async def get_groups(self):
     async with self.get_conn() as conn:
@@ -150,16 +164,22 @@ class PostgreStore:
     if not q:
       raise ValueError
     async with self.get_conn() as conn:
-      sql = '''\
+      if group:
+        gq = ' and group_id = $2'
+        args = (q, group)
+      else:
+        gq = ''
+        args = (q,)
+      sql = f'''\
           with cte as (
             select row_number() over
                 (partition by from_user, from_user_name order by id desc) as rn,
               from_user, from_user_name
             from messages
-            where from_user_name &@ $1 and group_id = $2
+            where from_user_name &@ $1{gq}
             order by id desc)
           select * from cte
           where rn = 1 limit 10'''
       return [(r['from_user'], r['from_user_name'])
-              for r in await conn.fetch(sql, q, group)]
+              for r in await conn.fetch(sql, *args)]
 

@@ -6,9 +6,11 @@ session_db = "mybot"
 index_groups = [
   "@group1",
   "@group2",
+  "1000000000",
 ]
 # socks5 proxy
 # proxy = ["127.0.0.1", "1080"]
+# mark_as_read = true
 
 [database]
 url = "postgresql:///luoxu"

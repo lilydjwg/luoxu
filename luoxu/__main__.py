@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 class Indexer:
   def __init__(self, config):
     self.config = config
+    self.mark_as_read = config['telegram'].get('mark_as_read', True)
     self.group_forward_history_done = {}
     self.dbstore = None
 
@@ -27,7 +28,9 @@ class Indexer:
       await dbstore.insert_message(conn, msg)
       if self.group_forward_history_done[msg.peer_id.channel_id]:
         await dbstore.loaded_upto(conn, msg.peer_id.channel_id, 1, msg.id)
-    await msg.mark_read()
+
+    if self.mark_as_read:
+      await msg.mark_read()
 
   async def run(self):
     config = self.config

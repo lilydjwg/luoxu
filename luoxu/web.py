@@ -37,19 +37,18 @@ class SearchHandler(BaseHandler):
     except Exception:
       raise web.HTTPBadRequest
     try:
-      group_pub_id, messages = await self.dbconn.search(q)
+      groupinfo, messages = await self.dbconn.search(q)
     except GroupNotFound:
       raise web.HTTPNotFound
 
     return web.json_response({
-      'group_pub_id': group_pub_id,
-      'group_id': q.group,
+      'groupinfo': groupinfo,
       'has_more': len(messages) == self.dbconn.SEARCH_LIMIT,
       'messages': [{
         'id': m['msgid'],
         'from_id': m['from_user'],
         'from_name': m['from_user_name'],
-        'text': m['text'],
+        'group_id': m['group_id'],
         'html': m.get('html'),
         't': m['created_at'].timestamp(),
         'edited': m['updated_at'] and m['updated_at'].timestamp() or None,
@@ -59,7 +58,7 @@ class SearchHandler(BaseHandler):
     })
 
   def _parse_query(self, query):
-    group = int(query['g'])
+    group = int(query.get('g', 0))
     terms = query.get('q')
     sender = int(query.get('sender', 0))
     start = query.get('start')
@@ -73,17 +72,19 @@ class SearchHandler(BaseHandler):
 class GroupsHandler(BaseHandler):
   async def _get(self, request):
     groups = await self.dbconn.get_groups()
+    gs = [{
+      'group_id': g['group_id'],
+      'name': g['name'],
+      'pub_id': g['pub_id'],
+    } for g in groups]
+    gs.sort(key=lambda g: g['name'])
     return web.json_response({
-      'groups': [{
-        'group_id': g['group_id'],
-        'name': g['name'],
-        'pub_id': g['pub_id'],
-      } for g in groups],
+      'groups': gs,
     })
 
 class NamesHandler(BaseHandler):
   async def _get(self, request):
-    group = int(request.query['g'])
+    group = int(request.query.get('g') or 0)
     q = request.query['q']
     names = await self.dbconn.find_names(group, q)
     return web.json_response({
