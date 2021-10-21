@@ -14,8 +14,8 @@ class GroupHistoryIndexer:
     group_info = self.group_info
     if group_info['loaded_last_id'] is None:
       first_id = 0
-      msgs = await client.get_messages(self.entity, limit=1)
-      last_id = msgs[0].id
+      msgs = await client.get_messages(self.entity, limit=2)
+      last_id = msgs[-1].id
     else:
       first_id = self.group_info['loaded_first_id']
       last_id = self.group_info['loaded_last_id']
