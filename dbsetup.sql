@@ -1,16 +1,16 @@
 create table tg_groups (
-  group_id integer unique not null primary key,
+  group_id bigint unique not null primary key,
   name text not null,
   pub_id text,
-  loaded_first_id integer,
-  loaded_last_id integer
+  loaded_first_id bigint,
+  loaded_last_id bigint
 );
 
 create table messages (
   id serial primary key,
-  group_id integer not null references tg_groups (group_id),
-  msgid integer not null,
-  from_user integer,
+  group_id bigint not null references tg_groups (group_id),
+  msgid bigint not null,
+  from_user bigint,
   from_user_name text not null,
   text text not null,
   created_at timestamp with time zone not null,
