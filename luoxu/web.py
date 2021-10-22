@@ -2,6 +2,7 @@ from asyncio import Lock
 import os
 import logging
 from html import escape as htmlescape
+import re
 
 from aiohttp import web
 from telethon.tl.types import User
@@ -33,7 +34,7 @@ class BaseHandler:
 
 def html_or_text(m):
   if r := m.get('html'):
-    return r
+    return re.sub(r'<span class="keyword">(\s+)', r'\1<span class="keyword">', r)
   if r := m.get('text'):
     return htmlescape(r)
   return ' '
