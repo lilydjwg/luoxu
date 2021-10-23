@@ -112,6 +112,10 @@ async def wordcloud(event):
           is_full = True
         else:
           is_wrong_usage = True
+      try:
+        endtime = datetime.datetime.now().astimezone(TIMEZONE) - datetime.timedelta(days=days)
+      except OverflowError:
+        endtime = datetime.datetime.now().astimezone(TIMEZONE) - datetime.timedelta(days=365 * 30)
 
   if is_wrong_usage:
     await send_help(event)
@@ -126,7 +130,6 @@ async def wordcloud(event):
     else:
       target_user = await msg.get_sender()
 
-  endtime = datetime.datetime.now().astimezone(TIMEZONE) - datetime.timedelta(days=days)
   chat = await event.get_chat()
   await generate_wordcloud(
     chat, target_user, endtime, msg,
