@@ -14,6 +14,7 @@ mod db;
 #[derive(Debug, StructOpt)]
 #[structopt(name = "luoxu-cutwords", about = "load messages and analyze")]
 struct Opt {
+  dbstring: String,
   group_id: i64,
   endtime: u64,
   user_id: i64,
@@ -28,12 +29,13 @@ fn main() -> Result<()> {
   }
   color_eyre::install()?;
   tracing_subscriber::fmt::fmt()
+    .with_writer(std::io::stderr)
     .with_env_filter(EnvFilter::from_default_env())
     .init();
 
   let opt = Opt::from_args();
   info!("connecting to database");
-  let client = Client::connect("postgresql://lilydjwg@localhost/luoxu", NoTls)?;
+  let client = Client::connect(&opt.dbstring, NoTls)?;
   let msg_iter = db::MessageIter::new(
     client, opt.group_id, opt.endtime,
     if opt.user_id == 0 { None } else { Some(opt.user_id) },

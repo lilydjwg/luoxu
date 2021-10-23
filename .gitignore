@@ -2,3 +2,5 @@ config.toml
 local.toml
 *.session
 *.session-journal
+userdict.txt
+StopWords-simple.txt

@@ -1,8 +1,10 @@
 import os
+import re
 import asyncio
 import logging
 import operator
 from functools import partial
+import importlib
 
 from telethon import TelegramClient, events
 from aiohttp import web
@@ -20,6 +22,19 @@ class Indexer:
     self.mark_as_read = config['telegram'].get('mark_as_read', True)
     self.group_forward_history_done = {}
     self.dbstore = None
+    self.msg_handlers = []
+
+  def load_plugins(self):
+    for plugin, conf in self.config.get('plugin', {}).items():
+      if not conf.get('enabled', True):
+        continue
+
+      logger.info('loading plugin %s', plugin)
+      mod = importlib.import_module(f'luoxu_plugins.{plugin}')
+      mod.register(self)
+
+  def add_msg_handler(self, handler, pattern='.*'):
+    self.msg_handlers.append((handler, re.compile(pattern)))
 
   async def on_message(self, event):
     msg = event.message
@@ -31,6 +46,11 @@ class Indexer:
 
     if self.mark_as_read:
       await msg.mark_read()
+
+    for handler, pattern in self.msg_handlers:
+      logger.debug('message: %s, pattern: %s', msg.text, pattern)
+      if pattern.fullmatch(msg.text):
+        asyncio.create_task(handler(event))
 
   async def run(self):
     config = self.config
@@ -86,6 +106,8 @@ class Indexer:
 
     client.add_event_handler(self.on_message, events.NewMessage(chats=index_group_ids))
     client.add_event_handler(self.on_message, events.MessageEdited(chats=index_group_ids))
+
+    self.load_plugins()
 
     try:
       await asyncio.gather(*runnables)
