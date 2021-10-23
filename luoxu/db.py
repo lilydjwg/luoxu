@@ -121,10 +121,11 @@ class PostgreStore:
         rows = await conn.fetch(sql)
         groupinfo = {row['group_id']: [row['pub_id'], row['name']] for row in rows}
 
-      cols = [
-        'msgid', 'group_id', 'from_user', 'from_user_name', 'created_at', 'updated_at',
-      ]
-      sql = '''select {} from messages where 1 = 1'''
+      # run a subquery to highlight because it would highlight all
+      # matched rows (ignoring limits) otherwise
+      common_cols = 'msgid, group_id, from_user, from_user_name, created_at, updated_at'
+      sql = '''select {0}, text from messages where 1 = 1'''
+      highlight = None
       params = []
       if q.group:
         sql += f''' and group_id = ${len(params)+1}'''
@@ -135,10 +136,8 @@ class PostgreStore:
           raise ValueError
         sql += f''' and text &@~ ${len(params)+1}'''
         params.append(query)
-        cols.append(f'''pgroonga_highlight_html(text, pgroonga_query_extract_keywords(${len(params)+1}), 'message_idx') as html''')
+        highlight = f'''pgroonga_highlight_html(text, pgroonga_query_extract_keywords(${len(params)+1}), 'message_idx') as html'''
         params.append(query)
-      else:
-        cols.append('text')
       if q.sender:
         sql += f''' and from_user = ${len(params)+1}'''
         params.append(q.sender)
@@ -150,7 +149,9 @@ class PostgreStore:
         params.append(q.end)
 
       sql += f' order by created_at desc limit {self.SEARCH_LIMIT}'
-      sql = sql.format(', '.join(cols))
+      if highlight:
+        sql = f'select {{0}}, {highlight} from ({sql}) as t'
+      sql = sql.format(common_cols)
       logger.debug('searching: %s: %s', sql, params)
       rows = await conn.fetch(sql, *params)
       return groupinfo, rows
