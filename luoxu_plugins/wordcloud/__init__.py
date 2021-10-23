@@ -9,7 +9,7 @@ import logging
 from telethon import utils
 from wordcloud import WordCloud
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('luoxu_plugins.wordcloud')
 
 CUTWORDS_EXE = 'luoxu-cutwords'
 FONT = '/usr/share/fonts/adobe-source-han-sans/SourceHanSansCN-Normal.otf'
@@ -56,16 +56,18 @@ async def generate_wordcloud(chat, target_user, endtime, msg):
   stream = io.BytesIO()
   loop = asyncio.get_event_loop()
   await loop.run_in_executor(None, gen_image, words, stream)
-  logger.info('生成完成，用时 %.3fs', time.time() - st2)
+  st3 = time.time()
+  logger.info('生成完成，用时 %.3fs', st3 - st2)
 
   await msg.reply(
     f'落絮词云为您生成消息词云\n'
     f'{chat.title} 群组 {utils.get_display_name(target_user)}\n'
     f'从 {endtime:%Y-%m-%d %H:%M:%S}\n'
     f'到 {st:%Y-%m-%d %H:%M:%S}\n'
-    f'共 {total_messages} 条消息，',
+    f'共 {total_messages} 条消息',
     file = (stream.getvalue() if words else None),
   )
+  logger.info('回复完成，用时 %.3fs', time.time() - st3)
 
 async def send_help(event):
   '''send /luoxucloud command help.'''
@@ -102,13 +104,14 @@ async def wordcloud(event):
       days = float(args[0])
     except ValueError:
       is_wrong_usage = True
-    if math.isnan(days) or math.isinf(days):
-      is_wrong_usage = True
-    if len(args) == 2:
-      if args[1] == 'full':
-        is_full = True
-      else:
+    else:
+      if math.isnan(days) or math.isinf(days):
         is_wrong_usage = True
+      if len(args) == 2:
+        if args[1] == 'full':
+          is_full = True
+        else:
+          is_wrong_usage = True
 
   if is_wrong_usage:
     await send_help(event)
