@@ -24,7 +24,7 @@ class BaseHandler:
 
     st = time.time()
     res = await self._get(request)
-    logger.info('request took %.3ss', time.time() - st)
+    logger.info('request took %.3fs', time.time() - st)
     if origin:
       res.headers.setdefault(
         'Access-Control-Allow-Origin', origin
