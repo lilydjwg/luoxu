@@ -137,5 +137,5 @@ async def wordcloud(event):
 
 def register(indexer):
   global DBSTRING
-  DBSTRING = indexer.config['database']['url']
+  DBSTRING = indexer.config['plugin']['wordcloud']['url']
   indexer.add_msg_handler(wordcloud, pattern='/luoxucloud(?: .*)?')
