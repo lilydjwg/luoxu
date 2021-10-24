@@ -53,6 +53,10 @@ async def generate_wordcloud(chat, target_user, endtime, msg):
   st2 = time.time()
   logger.info('分析完成，用时 %.3fs', st2 - st.timestamp())
 
+  if not words:
+    await msg.reply('落絮词云未找到符合条件的消息。')
+    return
+
   stream = io.BytesIO()
   loop = asyncio.get_event_loop()
   await loop.run_in_executor(None, gen_image, words, stream)
@@ -112,10 +116,8 @@ async def wordcloud(event):
           is_full = True
         else:
           is_wrong_usage = True
-      try:
-        endtime = datetime.datetime.now().astimezone(TIMEZONE) - datetime.timedelta(days=days)
-      except OverflowError:
-        endtime = datetime.datetime.now().astimezone(TIMEZONE) - datetime.timedelta(days=365 * 30)
+      days = min(365 * 30, days)
+      endtime = datetime.datetime.now().astimezone(TIMEZONE) - datetime.timedelta(days=days)
 
   if is_wrong_usage:
     await send_help(event)
