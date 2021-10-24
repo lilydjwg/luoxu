@@ -68,7 +68,7 @@ class PostgreStore:
       )
       logger.info('inserted <%s> [%s] %s', msg.chat.title, msg.id, text)
     else:
-      logger.info('updated <%s> [%s] %s', msg.chat.title, msg.id, text)
+      logger.info(' updated <%s> [%s] %s', msg.chat.title, msg.id, text)
 
   async def get_group(self, conn, group_id: int):
     sql = '''\

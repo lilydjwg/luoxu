@@ -49,7 +49,7 @@ fn main() -> Result<()> {
   let stop_words = match load_stopwords() {
     Ok(s) => s,
     Err(e) => {
-      warn!("failedto load StopWords-simple.txt: {:#}", e);
+      warn!("failed to load StopWords-simple.txt: {:#}", e);
       HashSet::new()
     },
   };

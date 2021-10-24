@@ -3,6 +3,7 @@ import os
 import logging
 from html import escape as htmlescape
 import re
+import time
 
 from aiohttp import web
 from telethon.tl.types import User
@@ -21,7 +22,9 @@ class BaseHandler:
     if origin and origin not in request.config_dict['origins']:
       raise web.HTTPBadRequest
 
+    st = time.time()
     res = await self._get(request)
+    logger.info('request took %.3ss', time.time() - st)
     if origin:
       res.headers.setdefault(
         'Access-Control-Allow-Origin', origin
