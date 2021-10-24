@@ -17,7 +17,7 @@ create table messages (
   updated_at timestamp with time zone
 );
 
-create index messages_msgid_idx on messages (msgid);
+create unique index messages_msgid_idx on messages (msgid, group_id);
 
 CREATE INDEX user_name_idx ON messages USING pgroonga (from_user_name) WITH (tokenizer='TokenBigramSplitSymbolAlphaDigit');
 CREATE INDEX message_idx ON messages USING pgroonga (text) WITH (tokenizer='TokenNgram("report_source_location", true, "loose_blank", true)');

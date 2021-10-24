@@ -49,26 +49,22 @@ class PostgreStore:
           text.append(f'[audio] {a.title} - {a.performer}')
     text = '\n'.join(x for x in text if x)
 
-    r = await conn.fetchrow(
-      '''update messages set text = $1, updated_at = $2
-         where msgid = $3 and group_id = $4 returning id''',
-      text, msg.edit_date, msg.id, msg.chat.id)
-    if r is None: # non-existent
-      await conn.execute(
-        '''insert into messages
-          (group_id, msgid, from_user, from_user_name, text, created_at, updated_at) values
-          ($1,       $2,    $3,        $4,             $5,   $6, $7) ''',
-        msg.peer_id.channel_id,
-        msg.id,
-        u.id if u else None,
-        format_name(u),
-        text,
-        msg.date,
-        msg.edit_date,
-      )
-      logger.info('inserted <%s> [%s] %s', msg.chat.title, msg.id, text)
-    else:
-      logger.info(' updated <%s> [%s] %s', msg.chat.title, msg.id, text)
+    sql = '''
+      INSERT INTO messages (group_id, msgid, from_user, from_user_name, text, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (msgid, group_id) DO UPDATE
+        SET text = EXCLUDED.text, updated_at = EXCLUDED.updated_at
+    '''
+    await conn.execute(sql,
+      msg.peer_id.channel_id,
+      msg.id,
+      u.id if u else None,
+      format_name(u),
+      text,
+      msg.date,
+      msg.edit_date,
+    )
+    logger.info('message <%s> [%s] %s: %s', msg.chat.title, msg.id, format_name(u), text)
 
   async def get_group(self, conn, group_id: int):
     sql = '''\
