@@ -20,7 +20,6 @@ class Indexer:
   def __init__(self, config):
     self.config = config
     self.mark_as_read = config['telegram'].get('mark_as_read', True)
-    self.group_forward_history_done = {}
     self.dbstore = None
     self.msg_handlers = []
 
@@ -41,7 +40,7 @@ class Indexer:
     dbstore = self.dbstore
     async with dbstore.get_conn() as conn:
       await dbstore.insert_message(conn, msg)
-      if self.group_forward_history_done[msg.peer_id.channel_id]:
+      if self.group_forward_history_done.get(msg.peer_id.channel_id, False):
         await dbstore.loaded_upto(conn, msg.peer_id.channel_id, 1, msg.id)
 
     if self.mark_as_read:
@@ -59,11 +58,12 @@ class Indexer:
     client = TelegramClient(
       tg_config['session_db'],
       tg_config['api_id'],
-      tg_config['api_hash'])
+      tg_config['api_hash'],
+      auto_reconnect = False, # we would miss updates between connections
+    )
     if proxy := tg_config.get('proxy'):
       import socks
       client.set_proxy((socks.SOCKS5, proxy[0], int(proxy[1])))
-    await client.start(tg_config['account'])
 
     db = PostgreStore(config['database']['url'])
     await db.setup()
@@ -88,21 +88,15 @@ class Indexer:
     )
     await site.start()
 
-    runnables = []
+    await client.start(tg_config['account'])
     index_group_ids = []
+    group_entities = []
     for g in tg_config['index_groups']:
       if not g.startswith('@'):
         g = int(g)
       group = await client.get_entity(g)
       index_group_ids.append(group.id)
-      self.group_forward_history_done[group.id] = False
-
-      ginfo = await self.init_group(group)
-      gi = GroupHistoryIndexer(group, ginfo)
-      runnables.append(gi.run(
-        client, db,
-        partial(operator.setitem, self.group_forward_history_done, group.id, True)
-      ))
+      group_entities.append(group)
 
     client.add_event_handler(self.on_message, events.NewMessage(chats=index_group_ids))
     client.add_event_handler(self.on_message, events.MessageEdited(chats=index_group_ids))
@@ -110,10 +104,32 @@ class Indexer:
     self.load_plugins()
 
     try:
-      await asyncio.gather(*runnables)
-      await client.run_until_disconnected()
+      while True:
+        await self.run_on_connected(client, db, group_entities)
+        logger.warning('disconnected, reconnecting in 1s')
+        await asyncio.sleep(1)
     finally:
       await runner.cleanup()
+
+  async def run_on_connected(self, client, db, group_entities):
+    self.group_forward_history_done = {}
+    runnables = []
+    for group in group_entities:
+      ginfo = await self.init_group(group)
+      gi = GroupHistoryIndexer(group, ginfo)
+      runnables.append(gi.run(
+        client, db,
+        partial(operator.setitem, self.group_forward_history_done, group.id, True)
+      ))
+
+    if not client.is_connected():
+      await client.start(self.config['telegram']['account'])
+
+    gis = asyncio.gather(*runnables)
+    try:
+      await client.run_until_disconnected()
+    except ConnectionError:
+      gis.cancel()
 
   async def init_group(self, group):
     logger.info('init_group: %r', group.title)
