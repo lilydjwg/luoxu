@@ -1,5 +1,7 @@
 import logging
 
+from .ctxvars import msg_source
+
 logger = logging.getLogger(__name__)
 
 class GroupHistoryIndexer:
@@ -11,6 +13,7 @@ class GroupHistoryIndexer:
     self.group_info = group_info
 
   async def run(self, client, dbstore, callback):
+    msg_source.set('history')
     group_info = self.group_info
     if group_info['loaded_last_id'] is None:
       first_id = 0

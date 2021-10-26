@@ -13,6 +13,7 @@ from .db import PostgreStore
 from .group import GroupHistoryIndexer
 from .util import load_config
 from . import web as myweb
+from .ctxvars import msg_source
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,10 @@ class Indexer:
     self.msg_handlers.append((handler, re.compile(pattern)))
 
   async def on_message(self, event):
+    if isinstance(event, events.MessageEdited.Event):
+      msg_source.set('editmsg')
+    else:
+      msg_source.set('newmsg')
     msg = event.message
     dbstore = self.dbstore
     async with dbstore.get_conn() as conn:
@@ -129,7 +134,12 @@ class Indexer:
     if not client.is_connected():
       await client.start(self.config['telegram']['account'])
 
+    # we do need to fetch history on startup because telethon doesn't
+    # record group's pts in database.
+    #
+    # we probably don't need to if we're just reconnecting.
     gis = asyncio.gather(*runnables)
+    await client.catch_up()
     try:
       await client.run_until_disconnected()
     except ConnectionError:

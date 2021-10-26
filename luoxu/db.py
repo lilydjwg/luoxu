@@ -8,6 +8,7 @@ import telethon
 from .util import format_name
 from .indexing import text_to_query
 from .types import SearchQuery, GroupNotFound
+from .ctxvars import msg_source
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class PostgreStore:
       msg.date,
       msg.edit_date,
     )
-    logger.info('message <%s> [%s] %s: %s', msg.chat.title, msg.id, format_name(u), text)
+    logger.info('%7s <%s> [%s] %s: %s', msg_source.get(), msg.chat.title, msg.id, format_name(u), text)
 
   async def get_group(self, conn, group_id: int):
     sql = '''\
