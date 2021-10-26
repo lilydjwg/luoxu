@@ -105,9 +105,13 @@ class Indexer:
 
     try:
       while True:
-        await self.run_on_connected(client, db, group_entities)
-        logger.warning('disconnected, reconnecting in 1s')
-        await asyncio.sleep(1)
+        try:
+          await self.run_on_connected(client, db, group_entities)
+          logger.warning('disconnected, reconnecting in 1s')
+          await asyncio.sleep(1)
+        except ConnectionError:
+          logger.exception('connection error, retry in 5s')
+          await asyncio.sleep(5)
     finally:
       await runner.cleanup()
 
