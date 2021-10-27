@@ -85,7 +85,8 @@ async def send_help(event):
     '\n'
     '例如： /luoxucloud 7\n'
     '\n'
-    '项目源码： https://github.com/lilydjwg/luoxu/tree/master/luoxu_plugins/wordcloud'
+    '项目源码： https://github.com/lilydjwg/luoxu/tree/master/luoxu_plugins/wordcloud',
+    link_preview = False,
   )
 
   await asyncio.sleep(60)
