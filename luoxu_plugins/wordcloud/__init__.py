@@ -22,10 +22,10 @@ def gen_image(words, stream):
   ).generate_from_frequencies(words).to_image()
   image.save(stream, 'PNG')
 
-async def generate_wordcloud(chat, target_user, endtime, msg):
+async def generate_wordcloud(chat_id, chat_title, target_user, endtime, reply):
   logger.info(
     '生成词云，群组 %s，用户 %s, 结束时间 %s',
-    chat.title,
+    chat_title,
     utils.get_display_name(target_user),
     endtime.strftime('%Y-%m-%d %H:%M:%S%z'),
   )
@@ -33,7 +33,7 @@ async def generate_wordcloud(chat, target_user, endtime, msg):
   cmd = [
     CUTWORDS_EXE,
     DBSTRING,
-    chat.id,
+    chat_id,
     int(endtime.timestamp()),
     target_user.id if target_user else 0,
   ]
@@ -54,7 +54,7 @@ async def generate_wordcloud(chat, target_user, endtime, msg):
   logger.info('分析完成，用时 %.3fs', st2 - st.timestamp())
 
   if not words:
-    await msg.reply('落絮词云未找到符合条件的消息。')
+    await reply('落絮词云未找到符合条件的消息。')
     return
 
   stream = io.BytesIO()
@@ -63,9 +63,9 @@ async def generate_wordcloud(chat, target_user, endtime, msg):
   st3 = time.time()
   logger.info('生成完成，用时 %.3fs', st3 - st2)
 
-  await msg.reply(
+  await reply(
     f'落絮词云为您生成消息词云\n'
-    f'{chat.title} 群组 {utils.get_display_name(target_user)}\n'
+    f'{chat_title} 群组 {utils.get_display_name(target_user)}\n'
     f'从 {endtime:%Y-%m-%d %H:%M:%S}\n'
     f'到 {st:%Y-%m-%d %H:%M:%S}\n'
     f'共 {total_messages} 条消息',
@@ -95,35 +95,38 @@ async def send_help(event):
   except:
     logger.warn('删除帮助消息失败')
 
+def parse_args(args):
+  if not args or len(args) > 2:
+    return None
+  is_full = False
+  try:
+    days = float(args[0])
+  except ValueError:
+    return None
+  else:
+    if math.isnan(days) or math.isinf(days):
+      return None
+    if len(args) == 2:
+      if args[1] == 'full':
+        is_full = True
+      else:
+        return None
+    days = min(365 * 30, days)
+    endtime = datetime.datetime.now().astimezone(TIMEZONE) - datetime.timedelta(days=days)
+
+  return endtime, is_full
+
 async def wordcloud(event):
   logger.debug('wordcloud on event: %r', event)
   msg = event.message
   _, *args = msg.text.split()
 
-  is_wrong_usage = False
-  is_full = False
-  if not args or len(args) > 2:
-    is_wrong_usage = True
-  else:
-    try:
-      days = float(args[0])
-    except ValueError:
-      is_wrong_usage = True
-    else:
-      if math.isnan(days) or math.isinf(days):
-        is_wrong_usage = True
-      if len(args) == 2:
-        if args[1] == 'full':
-          is_full = True
-        else:
-          is_wrong_usage = True
-      days = min(365 * 30, days)
-      endtime = datetime.datetime.now().astimezone(TIMEZONE) - datetime.timedelta(days=days)
-
-  if is_wrong_usage:
+  r = parse_args(args)
+  if r is None:
     await send_help(event)
     return
 
+  endtime, is_full = r
   if is_full:
     target_user = None
   else:
@@ -135,7 +138,7 @@ async def wordcloud(event):
 
   chat = await event.get_chat()
   await generate_wordcloud(
-    chat, target_user, endtime, msg,
+    chat.id, chat.title, target_user, endtime, msg.reply,
   )
 
 def register(indexer):
