@@ -69,6 +69,12 @@ fn main() -> Result<()> {
     if msg.starts_with("落絮词云为您生成消息词云") {
       continue;
     }
+    if msg.starts_with("落絮词云未找到符合条件的消息") {
+      continue;
+    }
+    if msg.starts_with("[Lisa] ") {
+      continue;
+    }
     for line in msg.split('\n') {
       for pat in ["[webpage]", "[poll]", "[file]", "[audio]"] {
         if line.starts_with(pat) {
