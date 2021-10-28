@@ -164,7 +164,7 @@ class PostgreStore:
       raise ValueError
     async with self.get_conn() as conn:
       if group:
-        gq = ' and group_id = $2'
+        gq = ' and $2 = ANY (group_id)'
         args = (q, group)
       else:
         gq = ''
@@ -173,7 +173,7 @@ class PostgreStore:
         select name, uid from usernames
         where name &@ $1{gq}
         order by last_seen desc
-        limit 20;
+        limit 15;
       '''
       return [(uid, r['name'])
               for r in await conn.fetch(sql, *args)
