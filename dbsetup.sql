@@ -19,5 +19,34 @@ create table messages (
 
 create unique index messages_msgid_idx on messages (msgid, group_id);
 
-CREATE INDEX user_name_idx ON messages USING pgroonga (from_user_name) WITH (tokenizer='TokenBigramSplitSymbolAlphaDigit');
 CREATE INDEX message_idx ON messages USING pgroonga (text) WITH (tokenizer='TokenNgram("report_source_location", true, "loose_blank", true)');
+
+create table usernames (
+  name text not null,
+  uid bigint[] not null,
+  group_id bigint[] not null,
+  last_seen timestamp with time zone not null
+);
+
+CREATE UNIQUE INDEX usernames_uidx ON usernames (name);
+CREATE INDEX usernames_idx ON usernames USING pgroonga (name) WITH (tokenizer='TokenBigramSplitSymbolAlphaDigit');
+
+CREATE FUNCTION array_distinct(anyarray) RETURNS anyarray AS $f$
+  SELECT array_agg(DISTINCT x) FROM unnest($1) t(x);
+$f$ LANGUAGE SQL IMMUTABLE;
+
+CREATE OR REPLACE FUNCTION update_usernames()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO usernames (name, uid, group_id, last_seen)
+    VALUES (NEW.from_user_name, ARRAY[NEW.from_user], ARRAY[NEW.group_id], NEW.created_at)
+    ON CONFLICT (name) DO UPDATE
+      SET last_seen = NEW.created_at,
+          uid = array_distinct(usernames.uid || NEW.from_user),
+          group_id = array_distinct(usernames.group_id || NEW.group_id);
+  RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
+
+CREATE TRIGGER table_updated AFTER INSERT
+  ON messages FOR EACH ROW EXECUTE PROCEDURE update_usernames();

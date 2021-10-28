@@ -170,15 +170,12 @@ class PostgreStore:
         gq = ''
         args = (q,)
       sql = f'''\
-          with cte as (
-            select row_number() over
-                (partition by from_user, from_user_name order by id desc) as rn,
-              from_user, from_user_name
-            from messages
-            where from_user_name &@ $1{gq}
-            order by id desc)
-          select * from cte
-          where rn = 1 limit 10'''
-      return [(r['from_user'], r['from_user_name'])
-              for r in await conn.fetch(sql, *args)]
+        select name, uid from usernames
+        where name &@ $1{gq}
+        order by last_seen desc
+        limit 20;
+      '''
+      return [(uid, r['name'])
+              for r in await conn.fetch(sql, *args)
+              for uid in r['uid']]
 
