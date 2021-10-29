@@ -64,6 +64,7 @@ class Indexer:
       tg_config['session_db'],
       tg_config['api_id'],
       tg_config['api_hash'],
+      use_ipv6 = tg_config.get('ipv6', False),
       auto_reconnect = False, # we would miss updates between connections
     )
     if proxy := tg_config.get('proxy'):

@@ -8,6 +8,7 @@ index_groups = [
   "@group2",
   "1000000000",
 ]
+# ipv6 = false
 # socks5 proxy
 # proxy = ["127.0.0.1", "1080"]
 # mark_as_read = true
