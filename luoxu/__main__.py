@@ -137,7 +137,11 @@ class Indexer:
     # we do need to fetch history on startup because telethon doesn't
     # record group's pts in database.
     #
-    # we probably don't need to if we're just reconnecting.
+    # we also need to fetch history on reconnect because sometimes we still
+    # don't see some missed updates (I don't know why).
+    #
+    # we may still miss edits that happen while we're offline and missed
+    # the updates.
     gis = asyncio.gather(*runnables)
     await client.catch_up()
     try:
