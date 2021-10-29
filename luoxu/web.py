@@ -116,10 +116,12 @@ class AvatarHandler:
   async def _get_avatar(self, u: User) -> str:
     filename = f'{u.photo.photo_id}.jpg'
     file = os.path.join(self.cache_dir, filename)
+    tmpfile = os.path.join(self.cache_dir, 'tmp.jpg')
     if not os.path.exists(file):
       logger.info('downloading photo for %s: %s', u.id, filename)
-      with open(file, 'wb') as f:
+      with open(tmpfile, 'wb') as f:
         await self.client.download_profile_photo(u, file=f)
+      os.rename(tmpfile, file)
     return file
 
   async def get(self, request) -> web.FileResponse:
