@@ -49,7 +49,10 @@ class Indexer:
         await dbstore.loaded_upto(conn, msg.peer_id.channel_id, 1, msg.id)
 
     if self.mark_as_read:
-      await msg.mark_read()
+      try:
+        await msg.mark_read()
+      except ConnectionError as e:
+        logger.warning('cannot mark as read: %r', e)
 
     for handler, pattern in self.msg_handlers:
       logger.debug('message: %s, pattern: %s', msg.text, pattern)
@@ -134,6 +137,8 @@ class Indexer:
 
     if not client.is_connected():
       await client.start(self.config['telegram']['account'])
+      # reset last ping to avoid reconnecting every 60s
+      client._ping = None
 
     # we do need to fetch history on startup because telethon doesn't
     # record group's pts in database.
@@ -147,8 +152,12 @@ class Indexer:
     await client.catch_up()
     try:
       await client.run_until_disconnected()
-    except ConnectionError:
+    finally:
       gis.cancel()
+      try:
+        await gis
+      except asyncio.CancelledError:
+        pass
 
   async def init_group(self, group):
     logger.info('init_group: %r', group.title)
