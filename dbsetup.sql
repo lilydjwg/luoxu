@@ -41,7 +41,7 @@ BEGIN
   INSERT INTO usernames (name, uid, group_id, last_seen)
     VALUES (NEW.from_user_name, ARRAY[NEW.from_user], ARRAY[NEW.group_id], NEW.created_at)
     ON CONFLICT (name) DO UPDATE
-      SET last_seen = NEW.created_at,
+      SET last_seen = CASE WHEN usernames.last_seen > NEW.created_at THEN usernames.last_seen ELSE NEW.created_at END,
           uid = array_distinct(usernames.uid || NEW.from_user),
           group_id = array_distinct(usernames.group_id || NEW.group_id);
   RETURN NEW;
