@@ -1,12 +1,13 @@
 import logging
 import contextlib
 from typing import Literal
+import asyncio
+from random import randint
 
 import asyncpg
-import telethon
 
-from .util import format_name
-from .indexing import text_to_query
+from .util import format_name, UpdateLoaded
+from .indexing import text_to_query, format_msg
 from .types import SearchQuery, GroupNotFound
 from .ctxvars import msg_source
 
@@ -22,40 +23,15 @@ class PostgreStore:
   async def setup(self) -> None:
     self.pool = await asyncpg.create_pool(self.address)
 
-  async def insert_message(self, conn, msg):
-    if isinstance(msg, telethon.tl.patched.MessageService):
-      # pinning messages
-      return
-
+  async def _insert_one_message(self, conn, msg, text):
     u = msg.sender
-    text = []
-    if m := msg.message:
-      text.append(m)
-    if p := msg.poll:
-      poll_text = "\n".join(a.text for a in p.poll.answers)
-      text.append(f'[poll] {p.poll.question}\n{poll_text}')
-    if w := msg.web_preview:
-      text.extend((
-        '[webpage]',
-        w.url,
-        w.site_name,
-        w.title,
-        w.description,
-      ))
-    if d := msg.document:
-      for a in d.attributes:
-        if hasattr(a, 'file_name'):
-          text.append(f'[file] {a.file_name}')
-        if getattr(a, 'performer', None) and getattr(a, 'title', None):
-          text.append(f'[audio] {a.title} - {a.performer}')
-    text = '\n'.join(x for x in text if x)
-
     sql = '''
       INSERT INTO messages (group_id, msgid, from_user, from_user_name, text, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (msgid, group_id) DO UPDATE
         SET text = EXCLUDED.text, updated_at = EXCLUDED.updated_at
     '''
+    logger.info('%7s <%s> [%s] %s: %s', msg_source.get(), msg.chat.title, msg.id, format_name(u), text)
     await conn.execute(sql,
       msg.peer_id.channel_id,
       msg.id,
@@ -65,7 +41,27 @@ class PostgreStore:
       msg.date,
       msg.edit_date,
     )
-    logger.info('%7s <%s> [%s] %s: %s', msg_source.get(), msg.chat.title, msg.id, format_name(u), text)
+
+  async def insert_messages(self, msgs, update_loaded):
+    data = [(msg, text) for msg in msgs
+            if (text := format_msg(msg)) is not None]
+    if not data:
+      return
+
+    while True:
+      try:
+        async with self.get_conn() as conn:
+          for msg, text in data:
+            await self._insert_one_message(conn, msg, text)
+          if update_loaded in [UpdateLoaded.update_last, UpdateLoaded.update_both]:
+            await self.loaded_upto(conn, msg.peer_id.channel_id, 1, msgs[-1].id)
+          if update_loaded in [UpdateLoaded.update_first, UpdateLoaded.update_both]:
+            await self.loaded_upto(conn, msg.peer_id.channel_id, -1, msgs[0].id)
+          break
+      except asyncpg.exceptions.DeadlockDetectedError:
+        t = randint(1, 50) / 10
+        logger.warning('deadlock detected, retry in %.1fs', t)
+        await asyncio.sleep(t)
 
   async def get_group(self, conn, group_id: int):
     sql = '''\

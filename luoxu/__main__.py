@@ -11,7 +11,7 @@ from aiohttp import web
 
 from .db import PostgreStore
 from .group import GroupHistoryIndexer
-from .util import load_config
+from .util import load_config, UpdateLoaded
 from . import web as myweb
 from .ctxvars import msg_source
 
@@ -43,10 +43,12 @@ class Indexer:
       msg_source.set('newmsg')
     msg = event.message
     dbstore = self.dbstore
-    async with dbstore.get_conn() as conn:
-      await dbstore.insert_message(conn, msg)
-      if self.group_forward_history_done.get(msg.peer_id.channel_id, False):
-        await dbstore.loaded_upto(conn, msg.peer_id.channel_id, 1, msg.id)
+
+    if self.group_forward_history_done.get(msg.peer_id.channel_id, False):
+      update_loaded = UpdateLoaded.update_last
+    else:
+      update_loaded = UpdateLoaded.update_none
+    await dbstore.insert_messages([msg], update_loaded)
 
     if self.mark_as_read:
       try:

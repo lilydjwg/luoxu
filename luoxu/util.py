@@ -1,4 +1,6 @@
 import datetime
+from enum import Enum, auto
+
 import toml
 
 def format_name(user) -> str:
@@ -34,3 +36,8 @@ def load_config(file):
   with open(file) as f:
     return toml.load(f)
 
+class UpdateLoaded(Enum):
+  update_none = auto()
+  update_first = auto()
+  update_last = auto()
+  update_both = auto()

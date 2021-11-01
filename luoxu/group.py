@@ -1,6 +1,7 @@
 import logging
 
 from .ctxvars import msg_source
+from .util import UpdateLoaded
 
 logger = logging.getLogger(__name__)
 
@@ -35,20 +36,18 @@ class GroupHistoryIndexer:
       if not msgs:
         break
 
-      async with dbstore.get_conn() as conn:
-        for msg in msgs:
-          await dbstore.insert_message(conn, msg)
+      if not first_id:
+        update_loaded = UpdateLoaded.update_both
+        first_id = msgs[0].id
+      else:
+        update_loaded = UpdateLoaded.update_last
         last_id = msgs[-1].id
-        await dbstore.loaded_upto(conn, self.group_id, 1, last_id)
-        if not first_id:
-          first_id = msgs[0].id
-          await dbstore.loaded_upto(conn, self.group_id, -1, first_id)
+      await dbstore.insert_messages(msgs, update_loaded)
 
     callback()
 
     # going backward
-    last_id = first_id
-    if last_id == 1:
+    if first_id == 1:
       return
 
     while True:
@@ -56,14 +55,11 @@ class GroupHistoryIndexer:
         self.entity,
         limit = 50,
         # from current (or latest) to older
-        max_id = last_id,
+        max_id = first_id,
       )
       if not msgs:
         break
 
-      async with dbstore.get_conn() as conn:
-        for msg in msgs:
-          await dbstore.insert_message(conn, msg)
-
-        last_id = msgs[-1].id
-        await dbstore.loaded_upto(conn, self.group_id, -1, last_id)
+      msgs = msgs[::-1]
+      first_id = msgs[0].id
+      await dbstore.insert_messages(msgs, UpdateLoaded.update_first)
