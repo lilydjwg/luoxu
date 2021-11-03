@@ -24,14 +24,14 @@ class Indexer:
     self.dbstore = None
     self.msg_handlers = []
 
-  def load_plugins(self):
+  def load_plugins(self, client):
     for plugin, conf in self.config.get('plugin', {}).items():
       if not conf.get('enabled', True):
         continue
 
       logger.info('loading plugin %s', plugin)
       mod = importlib.import_module(f'luoxu_plugins.{plugin}')
-      mod.register(self)
+      mod.register(self, client)
 
   def add_msg_handler(self, handler, pattern='.*'):
     self.msg_handlers.append((handler, re.compile(pattern)))
@@ -52,7 +52,7 @@ class Indexer:
 
     if self.mark_as_read:
       try:
-        await msg.mark_read()
+        await msg.mark_read(clear_mentions=True)
       except ConnectionError as e:
         logger.warning('cannot mark as read: %r', e)
 
@@ -112,7 +112,7 @@ class Indexer:
     client.add_event_handler(self.on_message, events.NewMessage(chats=index_group_ids))
     client.add_event_handler(self.on_message, events.MessageEdited(chats=index_group_ids))
 
-    self.load_plugins()
+    self.load_plugins(client)
 
     try:
       while True:
@@ -140,7 +140,8 @@ class Indexer:
     if not client.is_connected():
       await client.start(self.config['telegram']['account'])
       # reset last ping to avoid reconnecting every 60s
-      client._ping = None
+      logger.info('resetting client._sender._ping')
+      client._sender._ping = None
 
     # we do need to fetch history on startup because telethon doesn't
     # record group's pts in database.

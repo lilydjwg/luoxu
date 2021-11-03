@@ -141,7 +141,7 @@ async def wordcloud(event):
     chat.id, chat.title, target_user, endtime, msg.reply,
   )
 
-def register(indexer):
+def register(indexer, client):
   global DBSTRING
   DBSTRING = indexer.config['plugin']['wordcloud']['url']
   indexer.add_msg_handler(wordcloud, pattern='/luoxucloud(?: .*)?')

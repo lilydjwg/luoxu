@@ -44,6 +44,7 @@ class GroupHistoryIndexer:
         last_id = msgs[-1].id
       await dbstore.insert_messages(msgs, update_loaded)
 
+    logger.info('forward history index done for group %s', self.group_info['name'])
     callback()
 
     # going backward
@@ -63,3 +64,5 @@ class GroupHistoryIndexer:
       msgs = msgs[::-1]
       first_id = msgs[0].id
       await dbstore.insert_messages(msgs, UpdateLoaded.update_first)
+
+    logger.info('backward history index done for group %s', self.group_info['name'])
