@@ -52,7 +52,7 @@ class Indexer:
 
     if self.mark_as_read:
       try:
-        await msg.mark_read(clear_mentions=True)
+        await msg.mark_read()
       except ConnectionError as e:
         logger.warning('cannot mark as read: %r', e)
 
