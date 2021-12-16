@@ -6,12 +6,12 @@ import operator
 from functools import partial
 import importlib
 
-from telethon import TelegramClient, events
+from telethon import events
 from aiohttp import web
 
 from .db import PostgreStore
 from .group import GroupHistoryIndexer
-from .util import load_config, UpdateLoaded
+from .util import load_config, UpdateLoaded, create_client
 from . import web as myweb
 from .ctxvars import msg_source
 
@@ -64,17 +64,7 @@ class Indexer:
   async def run(self):
     config = self.config
     tg_config = config['telegram']
-
-    client = TelegramClient(
-      tg_config['session_db'],
-      tg_config['api_id'],
-      tg_config['api_hash'],
-      use_ipv6 = tg_config.get('ipv6', False),
-      auto_reconnect = False, # we would miss updates between connections
-    )
-    if proxy := tg_config.get('proxy'):
-      import socks
-      client.set_proxy((socks.SOCKS5, proxy[0], int(proxy[1])))
+    client = create_client(tg_config)
 
     db = PostgreStore(config['database']['url'])
     await db.setup()
@@ -102,10 +92,19 @@ class Indexer:
     await client.start(tg_config['account'])
     index_group_ids = []
     group_entities = []
+    dialogs = None
     for g in tg_config['index_groups']:
-      if not g.startswith('@'):
+      if g.startswith('@'):
+        group = await client.get_entity(g)
+      else:
         g = int(g)
-      group = await client.get_entity(g)
+        try:
+          group = await client.get_entity(g)
+        except ValueError:
+          if dialogs is None:
+            dialogs = await client.get_dialogs()
+          group = [d.entity for d in dialogs if d.entity.id == g][0]
+
       index_group_ids.append(group.id)
       group_entities.append(group)
 
@@ -120,9 +119,12 @@ class Indexer:
           await self.run_on_connected(client, db, group_entities)
           logger.warning('disconnected, reconnecting in 1s')
           await asyncio.sleep(1)
-        except ConnectionError:
-          logger.exception('connection error, retry in 5s')
-          await asyncio.sleep(5)
+        except (ConnectionError, asyncio.CancelledError) as e:
+          if isinstance(e.__context__, KeyboardInterrupt):
+            break
+          else:
+            logger.exception('connection error, retry in 5s')
+            await asyncio.sleep(5)
     finally:
       await runner.cleanup()
 
@@ -152,7 +154,7 @@ class Indexer:
     # we may still miss edits that happen while we're offline and missed
     # the updates.
     gis = asyncio.gather(*runnables)
-    await client.catch_up()
+    # await client.catch_up()
     try:
       await client.run_until_disconnected()
     finally:

@@ -12,7 +12,8 @@
 * 安装依赖请见 `requirements.txt` 文件
 * [获取](https://core.telegram.org/api/obtaining_api_id)一份 Telegram API key
 * 复制 `config.toml.example` 并按需要修改
-* 如果你想要索引私有群组/频道，请使用 `telethon` 加载会话并获取其 id
+
+使用 `python -m luoxu.ls_dialogs` 可以列出会话的 id 和名称。频道和群组的 id 可以用于配置文件中。
 
 设置数据库
 ----
@@ -21,6 +22,15 @@
 * 使用 `createdb` 命令创建数据库
 * 使用 `postgre` 用户身份连接到该数据库，并执行 `CREATE EXTENSION pgroonga;`
 * 导入 `dbsetup.sql` 脚本，如 `psql DBNAME < dbsetup.sql`
+
+运行
+----
+
+在本项目目录下（或者将本项目目录加入 Python 模块路径），执行：
+
+```sh
+python -m luoxu
+```
 
 配置 Web 前端
 ----
