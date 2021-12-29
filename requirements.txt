@@ -2,4 +2,4 @@ asyncpg
 telethon
 opencc
 aiohttp
-toml
+tomli
