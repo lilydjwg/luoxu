@@ -20,7 +20,7 @@ def fromtimestamp(ts: int) -> datetime.datetime:
 def run_until_sigint(fu):
   import asyncio
 
-  loop = asyncio.get_event_loop()
+  loop = asyncio.new_event_loop()
   fu = loop.create_task(fu)
 
   try:
