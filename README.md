@@ -64,3 +64,21 @@ luoxu 相当于运行一个 Telegram 客户端，其权限是完全的（包括�
 * 使用 `OR`（全大写）来表达「或」条件
 * 使用 `-` 来表达排除，如 `落絮 - 测试`
 * 使用小括号来分组
+
+数据库升级
+====
+
+当对 PostgreSQL 进行跨版本升级时，需要额外处理 pgroonga 的事情。
+
+步骤示意：
+
+1. 安装新的数据库软件
+2. `cp /usr/lib/postgresql/pgroonga* /opt/pgsql-13/lib`
+3. 安装新的 pgroonga
+4. 执行升级（`pg_upgrade`）
+5. 升级完成之后需要重新索引：
+
+```sql
+reindex index usernames_idx;
+reindex index message_idx;
+```
