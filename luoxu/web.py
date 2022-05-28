@@ -6,7 +6,7 @@ import re
 import time
 
 from aiohttp import web
-from telethon.tl.types import User
+from telethon.tl.types import User, ChatPhotoEmpty
 
 from . import util
 from .types import SearchQuery, GroupNotFound
@@ -131,7 +131,7 @@ class AvatarHandler:
       if getattr(u, 'deleted', False):
         name = 'ghost'
         file = None
-      elif not u.photo:
+      elif not u.photo or isinstance(u.photo, ChatPhotoEmpty):
         name = 'nobody'
         file = None
       else:
