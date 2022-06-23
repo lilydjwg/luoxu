@@ -29,6 +29,5 @@ if __name__ == '__main__':
     nicelogger.enable_pretty_logging('INFO')
   except ImportError:
     pass
-  loop = asyncio.get_event_loop()
-  loop.run_until_complete(main())
+  asyncio.run(main())
 
