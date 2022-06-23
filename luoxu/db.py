@@ -1,8 +1,9 @@
 import logging
 import contextlib
-from typing import Literal
+from typing import Literal, Any
 import asyncio
 from random import randint
+import datetime
 
 import asyncpg
 
@@ -16,8 +17,10 @@ logger = logging.getLogger(__name__)
 class PostgreStore:
   SEARCH_LIMIT = 50
 
-  def __init__(self, address: str) -> None:
-    self.address = address
+  def __init__(self, config: dict[str, Any]) -> None:
+    self.address = config['url']
+    first_year = config.get('first_year', 2016)
+    self.earliest_time = datetime.datetime(first_year, 1, 1).astimezone()
     self.pool = None
 
   async def setup(self) -> None:
@@ -28,7 +31,7 @@ class PostgreStore:
     sql = '''
       INSERT INTO messages (group_id, msgid, from_user, from_user_name, text, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
-      ON CONFLICT (msgid, group_id) DO UPDATE
+      ON CONFLICT (group_id, msgid, created_at) DO UPDATE
         SET text = EXCLUDED.text, updated_at = EXCLUDED.updated_at
     '''
     logger.info('%7s <%s> [%s] %s: %s', msg_source.get(), msg.chat.title, msg.id, format_name(u), text)
@@ -114,6 +117,45 @@ class PostgreStore:
         rows = await conn.fetch(sql)
         groupinfo = {row['group_id']: [row['pub_id'], row['name']] for row in rows}
 
+    ret = []
+    this_year = datetime.datetime.now().astimezone().year
+
+    while True:
+      this_year_start = datetime.datetime(this_year, 1, 1).astimezone()
+      next_year_start = datetime.datetime(this_year+1, 1, 1).astimezone()
+
+      if q.end:
+        date_end = min(q.end, next_year_start)
+      else:
+        date_end = next_year_start
+      if q.start:
+        date_start = max(q.start, this_year_start)
+      else:
+        date_start = this_year_start
+
+      if date_start > date_end:
+        break
+
+      ret += await self._search_one_year(
+        q, date_start, date_end,
+        self.SEARCH_LIMIT - len(ret),
+      )
+
+      if len(ret) >= self.SEARCH_LIMIT or date_start < self.earliest_time:
+        break
+
+      this_year -= 1
+
+    return groupinfo, ret
+
+  async def _search_one_year(
+    self,
+    q: SearchQuery,
+    date_start: datetime.datetime,
+    date_end: datetime.datetime,
+    limit: int,
+  ) -> list[dict]:
+    async with self.get_conn() as conn:
       # run a subquery to highlight because it would highlight all
       # matched rows (ignoring limits) otherwise
       common_cols = 'msgid, group_id, from_user, from_user_name, created_at, updated_at'
@@ -134,20 +176,19 @@ class PostgreStore:
       if q.sender:
         sql += f''' and from_user = ${len(params)+1}'''
         params.append(q.sender)
-      if q.start:
-        sql += f''' and created_at > ${len(params)+1}'''
-        params.append(q.start)
-      if q.end:
-        sql += f''' and created_at < ${len(params)+1}'''
-        params.append(q.end)
 
-      sql += f' order by created_at desc limit {self.SEARCH_LIMIT}'
+      sql += f''' and created_at > ${len(params)+1}'''
+      params.append(date_start)
+      sql += f''' and created_at < ${len(params)+1}'''
+      params.append(date_end)
+
+      sql += f' order by created_at desc limit {limit}'
       if highlight:
         sql = f'select {{0}}, {highlight} from ({sql}) as t'
       sql = sql.format(common_cols)
       logger.debug('searching: %s: %s', sql, params)
       rows = await conn.fetch(sql, *params)
-      return groupinfo, rows
+      return rows
 
   async def get_groups(self):
     async with self.get_conn() as conn:
