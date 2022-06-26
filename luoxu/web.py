@@ -85,7 +85,7 @@ class GroupsHandler(BaseHandler):
   async def _get(self, request):
     groups = await self.dbconn.get_groups()
     gs = [{
-      'group_id': g['group_id'],
+      'group_id': str(g['group_id']),
       'name': g['name'],
       'pub_id': g['pub_id'],
     } for g in groups]
