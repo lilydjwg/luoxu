@@ -100,8 +100,17 @@ class PostgreStore:
 
   @contextlib.asynccontextmanager
   async def get_conn(self):
-    async with self.pool.acquire() as conn, conn.transaction():
-      yield conn
+    for i in range(5):
+      try:
+        async with self.pool.acquire() as conn, conn.transaction():
+          yield conn
+        break
+      except FileNotFoundError:
+        if i < 4:
+          logger.error('FileNotFoundError while connecting to database, will retry later')
+          await asyncio.sleep(1)
+        else:
+          raise
 
   async def search(self, q: SearchQuery) -> list[dict]:
     async with self.get_conn() as conn:
