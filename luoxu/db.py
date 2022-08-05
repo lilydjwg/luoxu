@@ -127,11 +127,17 @@ class PostgreStore:
         groupinfo = {row['group_id']: [row['pub_id'], row['name']] for row in rows}
 
     ret = []
-    this_year = datetime.datetime.now().astimezone().year
+    now = datetime.datetime.now().astimezone()
+    # we search backwards, so we start in "end" year or current year
+    if q.end:
+      this_year = min(q.end, now).year
+    else:
+      this_year = now.year
 
     while True:
       this_year_start = datetime.datetime(this_year, 1, 1).astimezone()
       next_year_start = datetime.datetime(this_year+1, 1, 1).astimezone()
+      logger.debug('this_year_start=%s, next_year_start=%s, q.end=%s', this_year_start, next_year_start, q.end)
 
       if q.end:
         date_end = min(q.end, next_year_start)
