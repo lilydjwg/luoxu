@@ -174,8 +174,54 @@ def setup_app(
   app.router.add_get(f'{prefix}/groups', GroupsHandler(dbconn).get)
   app.router.add_get(f'{prefix}/names', NamesHandler(dbconn).get)
 
-  ah = AvatarHandler(client, cache_dir, default_avatar, ghost_avatar)
-  app.router.add_get(fr'{prefix}/avatar/{{uid:\d+}}.jpg', ah.get)
-  app.router.add_get(fr'{prefix}/avatar/{{name:\w+}}.jpg', ah.get)
+  if client:
+    ah = AvatarHandler(client, cache_dir, default_avatar, ghost_avatar)
+    app.router.add_get(fr'{prefix}/avatar/{{uid:\d+}}.jpg', ah.get)
+    app.router.add_get(fr'{prefix}/avatar/{{name:\w+}}.jpg', ah.get)
 
   return app
+
+async def run_web(config, port):
+  import asyncio
+  from .db import PostgreStore
+  db = PostgreStore(config['database'])
+  await db.setup()
+
+  web_config = config['web']
+  cache_dir = web_config['cache_dir']
+  os.makedirs(cache_dir, exist_ok=True)
+  app = setup_app(
+    db, None,
+    os.path.abspath(cache_dir),
+    os.path.abspath(web_config['default_avatar']),
+    os.path.abspath(web_config['ghost_avatar']),
+    prefix = web_config['prefix'],
+    origins = web_config['origins'],
+  )
+  runner = web.AppRunner(app)
+  await runner.setup()
+  site = web.TCPSite(
+    runner,
+    web_config['listen_host'], port,
+  )
+  await site.start()
+  while True:
+    await asyncio.sleep(3600)
+
+if __name__ == '__main__':
+  from .lib.nicelogger import enable_pretty_logging
+  enable_pretty_logging('DEBUG')
+
+  from .util import run_until_sigint, load_config
+
+  import argparse
+
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--config', default='config.toml',
+                      help='config file path')
+  parser.add_argument('--port', type=int,
+                      help='listen on this TCP port')
+  args = parser.parse_args()
+
+  config = load_config(args.config)
+  run_until_sigint(run_web(config, args.port))
