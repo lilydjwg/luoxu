@@ -20,6 +20,7 @@ class PostgreStore:
   def __init__(self, config: dict[str, Any]) -> None:
     self.address = config['url']
     first_year = config.get('first_year', 2016)
+    self.ocr_url = config.get('ocr_url')
     self.earliest_time = datetime.datetime(first_year, 1, 1).astimezone()
     self.pool = None
 
@@ -47,7 +48,7 @@ class PostgreStore:
 
   async def insert_messages(self, msgs, update_loaded):
     data = [(msg, text) for msg in msgs
-            if (text := format_msg(msg)) is not None]
+            if (text := await format_msg(msg, self.ocr_url)) is not None]
     if not data:
       return
 
