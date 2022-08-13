@@ -5,6 +5,7 @@ import logging
 import operator
 from functools import partial
 import importlib
+import inspect
 
 from telethon import events
 from aiohttp import web
@@ -24,14 +25,16 @@ class Indexer:
     self.dbstore = None
     self.msg_handlers = []
 
-  def load_plugins(self, client):
+  async def load_plugins(self, client):
     for plugin, conf in self.config.get('plugin', {}).items():
       if not conf.get('enabled', True):
         continue
 
       logger.info('loading plugin %s', plugin)
       mod = importlib.import_module(f'luoxu_plugins.{plugin}')
-      mod.register(self, client)
+      ret = mod.register(self, client)
+      if inspect.isawaitable(ret):
+        await ret
 
   def add_msg_handler(self, handler, pattern='.*'):
     self.msg_handlers.append((handler, re.compile(pattern)))
@@ -111,7 +114,7 @@ class Indexer:
     client.add_event_handler(self.on_message, events.NewMessage(chats=index_group_ids))
     client.add_event_handler(self.on_message, events.MessageEdited(chats=index_group_ids))
 
-    self.load_plugins(client)
+    await self.load_plugins(client)
 
     try:
       while True:
