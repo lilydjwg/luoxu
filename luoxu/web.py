@@ -7,6 +7,7 @@ import time
 
 from aiohttp import web
 from telethon.tl.types import User, ChatPhotoEmpty
+from telethon.errors.rpcerrorlist import ChannelPrivateError
 
 from . import util
 from .types import SearchQuery, GroupNotFound
@@ -127,7 +128,13 @@ class AvatarHandler:
   async def get(self, request) -> web.FileResponse:
     if uid_str := request.match_info.get('uid'):
       uid = int(uid_str)
-      u = await self.client.get_entity(uid)
+      try:
+        u = await self.client.get_entity(uid)
+      except ChannelPrivateError:
+        raise web.HTTPForbidden(headers = {
+          'Cache-Control': 'public, max-age=86400',
+        })
+
       if getattr(u, 'deleted', False):
         name = 'ghost'
         file = None
