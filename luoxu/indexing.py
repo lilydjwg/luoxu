@@ -1,4 +1,6 @@
 import logging
+import inspect
+import asyncio
 
 from opencc import OpenCC
 import telethon
@@ -25,11 +27,26 @@ def text_to_query(s):
   return s
 
 _ocr_cache = ExpiringDict(3600)
+_ocr_cache_lock = asyncio.Lock()
 _aiosession = None
 async def _ocr_img(client, media, ocr_url):
-  if cached := _ocr_cache.get(media.photo.id):
-    return cached
+  key = media.photo.id
+  async with _ocr_cache_lock:
+    cached = _ocr_cache.get(key)
+    if cached is None:
+      # coroutine cannot be awaited twice, but task can
+      fu = asyncio.create_task(_ocr_img_no_cache(client, media, ocr_url))
+      _ocr_cache[key] = fu
 
+  if cached is None:
+    return await fu
+  else:
+    if inspect.isawaitable(cached):
+      return await cached
+    else:
+      return cached
+
+async def _ocr_img_no_cache(client, media, ocr_url):
   logger.info('Downloading photo %d...', media.photo.id)
   imgdata = await client.download_media(media, file=bytes)
 
