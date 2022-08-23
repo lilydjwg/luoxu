@@ -94,9 +94,12 @@ class PostgreStore:
     self, conn, group_id: int,
     direction: Literal[1, -1], msgid: int,
   ) -> None:
-    sql = '''update tg_groups set %s = $1 where group_id = $2''' % ({
-      1: 'loaded_last_id', -1: 'loaded_first_id',
-    }[direction])
+    if direction == 1:
+      sql = '''update tg_groups set loaded_last_id = $1 where group_id = $2 and loaded_last_id < $1'''
+    elif direction == -1:
+      sql = '''update tg_groups set loaded_first_id = $1 where group_id = $2'''
+    else:
+      raise ValueError(direction)
     await conn.execute(sql, msgid, group_id)
 
   @contextlib.asynccontextmanager
