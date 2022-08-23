@@ -73,8 +73,13 @@ async def _ocr_img_no_cache(client, media, ocr_url):
   )
   formdata.add_field('lang', 'zh-Hans')
   logger.info('Uploading media %d to OCR service...', key)
-  res = await _aiosession.post(ocr_url, data=formdata)
-  j = await res.json()
+  try:
+    res = await _aiosession.post(ocr_url, data=formdata)
+    j = await res.json()
+  except Exception as e:
+    logger.error('OCR failed with %r', e)
+    return []
+
   logger.info('OCR done.')
   ret = [r[1][0] for r in j['result']]
   _ocr_cache[key] = ret
