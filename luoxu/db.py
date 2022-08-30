@@ -28,7 +28,7 @@ class PostgreStore:
     self.pool = await asyncpg.create_pool(self.address)
 
   async def _insert_one_message(self, conn, msg, text):
-    u = msg.sender
+    u = await msg.get_sender()
     sql = '''
       INSERT INTO messages (group_id, msgid, from_user, from_user_name, text, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
