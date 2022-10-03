@@ -30,7 +30,7 @@ def text_to_query(s):
 _ocr_cache = ExpiringDict(3600)
 _ocr_cache_lock = asyncio.Lock()
 _aiosession = None
-async def _ocr_img(client, media, ocr_url):
+async def _ocr_img(client, media, ocr_url, group_title):
   if isinstance(media, types.MessageMediaPhoto):
     key = media.photo.id
   else:
@@ -40,7 +40,7 @@ async def _ocr_img(client, media, ocr_url):
     cached = _ocr_cache.get(key)
     if cached is None:
       # coroutine cannot be awaited twice, but task can
-      fu = asyncio.create_task(_ocr_img_no_cache(client, media, ocr_url))
+      fu = asyncio.create_task(_ocr_img_no_cache(client, media, ocr_url, group_title))
       _ocr_cache[key] = fu
 
   if cached is None:
@@ -51,7 +51,7 @@ async def _ocr_img(client, media, ocr_url):
     else:
       return cached
 
-async def _ocr_img_no_cache(client, media, ocr_url):
+async def _ocr_img_no_cache(client, media, ocr_url, group_title):
   if isinstance(media, types.MessageMediaPhoto):
     key = media.photo.id
     mime_type = 'image/jpeg'
@@ -59,7 +59,7 @@ async def _ocr_img_no_cache(client, media, ocr_url):
     key = media.document.id
     mime_type = media.document.mime_type
 
-  logger.info('Downloading media %d...', key)
+  logger.info('<%s> Downloading media %d...', group_title, key)
   imgdata = await client.download_media(media, file=bytes)
 
   global _aiosession
@@ -72,7 +72,7 @@ async def _ocr_img_no_cache(client, media, ocr_url):
     filename = 'image', content_type = mime_type,
   )
   formdata.add_field('lang', 'zh-Hans')
-  logger.info('Uploading media %d to OCR service...', key)
+  logger.info('<%s> Uploading media %d to OCR service...', group_title, key)
   try:
     res = await _aiosession.post(ocr_url, data=formdata)
     j = await res.json()
@@ -120,7 +120,7 @@ async def format_msg(msg, ocr_url=None):
     if isinstance(media, types.MessageMediaPhoto) \
        or (isinstance(media, types.MessageMediaDocument)
            and msg.media.document.mime_type.startswith('image/')):
-      if ocr_text := await _ocr_img(msg.client, media, ocr_url):
+      if ocr_text := await _ocr_img(msg.client, media, ocr_url, msg.chat.title):
         text.append('[image]')
         text.extend(ocr_text)
 
