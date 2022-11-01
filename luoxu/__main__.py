@@ -142,7 +142,8 @@ class Indexer:
     runnables = []
     for group in group_entities:
       ginfo = await self.init_group(group)
-      gi = GroupHistoryIndexer(group, ginfo)
+      use_ocr = group.id not in self.ocr_ignore_group_ids
+      gi = GroupHistoryIndexer(group, ginfo, use_ocr)
       runnables.append(gi.run(
         client, db,
         partial(operator.setitem, self.group_forward_history_done, group.id, True)

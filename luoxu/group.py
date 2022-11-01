@@ -20,10 +20,11 @@ async def timed_get_messages(client, *args, **kwargs):
 class GroupHistoryIndexer:
   entity = None
 
-  def __init__(self, entity, group_info):
+  def __init__(self, entity, group_info, use_ocr):
     self.group_id = entity.id
     self.entity = entity
     self.group_info = group_info
+    self.use_ocr = use_ocr
 
   async def run(self, client, dbstore, callback):
     msg_source.set('history')
@@ -55,7 +56,7 @@ class GroupHistoryIndexer:
       else:
         update_loaded = UpdateLoaded.update_last
         last_id = msgs[-1].id
-      await dbstore.insert_messages(msgs, update_loaded)
+      await dbstore.insert_messages(msgs, update_loaded, use_ocr = self.use_ocr)
 
     logger.info('forward history index done for group %s', self.group_info['name'])
     callback()
@@ -77,6 +78,6 @@ class GroupHistoryIndexer:
 
       msgs = msgs[::-1]
       first_id = msgs[0].id
-      await dbstore.insert_messages(msgs, UpdateLoaded.update_first)
+      await dbstore.insert_messages(msgs, UpdateLoaded.update_first, use_ocr = self.use_ocr)
 
     logger.info('backward history index done for group %s', self.group_info['name'])
