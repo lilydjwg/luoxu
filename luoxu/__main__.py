@@ -45,7 +45,7 @@ class Indexer:
     else:
       msg_source.set('newmsg')
     msg = event.message
-    use_ocr = msg.chat_id not in self.ocr_ignore_group_ids
+    use_ocr = msg.peer_id.channel_id not in self.ocr_ignore_group_ids
     dbstore = self.dbstore
 
     if self.group_forward_history_done.get(msg.peer_id.channel_id, False):
