@@ -35,7 +35,7 @@ class PostgreStore:
       ON CONFLICT (group_id, msgid, created_at) DO UPDATE
         SET text = EXCLUDED.text, updated_at = EXCLUDED.updated_at
     '''
-    logger.info('%7s <%s> [%s] %s: %s', msg_source.get(), msg.chat.title, msg.id, format_name(u), text)
+    logger.info('%7s <%s> [%s] %s: %s', msg_source.get(), getattr(msg.chat, 'title', None), msg.id, format_name(u), text)
     await conn.execute(sql,
       msg.peer_id.channel_id,
       msg.id,

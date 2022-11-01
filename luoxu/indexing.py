@@ -1,6 +1,7 @@
 import logging
 import inspect
 import asyncio
+from typing import Optional
 
 from opencc import OpenCC
 import telethon
@@ -80,13 +81,19 @@ async def _ocr_img_no_cache(client, media, ocr_url, group_title):
     logger.error('OCR failed with %r', e)
     return []
 
-  logger.info('OCR done.')
+  logger.info('OCR %d done.', key)
   ret = [r[1][0] for r in j['result']]
   _ocr_cache[key] = ret
   _ocr_cache.expire()
   return ret
 
-async def format_msg(msg, ocr_url=None):
+async def format_msg(msg, ocr_url=None) -> Optional[str]:
+  try:
+    return await asyncio.wait_for(_format_msg(msg, ocr_url=ocr_url), 60)
+  except asyncio.TimeoutError:
+    logger.error('timed out formatting a message: %r', msg.to_dict())
+
+async def _format_msg(msg, ocr_url=None) -> str:
   if isinstance(msg, telethon.tl.patched.MessageService):
     # pinning messages
     return
