@@ -46,9 +46,9 @@ class PostgreStore:
       msg.edit_date,
     )
 
-  async def insert_messages(self, msgs, update_loaded):
+  async def insert_messages(self, msgs, update_loaded, use_ocr = True):
     data = [(msg, text) for msg in msgs
-            if (text := await format_msg(msg, self.ocr_url)) is not None]
+            if (text := await format_msg(msg, self.ocr_url if use_ocr else None)) is not None]
     if not data:
       return
 
