@@ -45,13 +45,14 @@ class Indexer:
     else:
       msg_source.set('newmsg')
     msg = event.message
+    use_ocr = msg.chat_id not in self.ocr_ignore_group_ids
     dbstore = self.dbstore
 
     if self.group_forward_history_done.get(msg.peer_id.channel_id, False):
       update_loaded = UpdateLoaded.update_last
     else:
       update_loaded = UpdateLoaded.update_none
-    await dbstore.insert_messages([msg], update_loaded)
+    await dbstore.insert_messages([msg], update_loaded, use_ocr)
 
     if self.mark_as_read:
       try:
@@ -94,6 +95,7 @@ class Indexer:
 
     await client.start(tg_config['account'])
     index_group_ids = []
+    ocr_ignore_group_ids = []
     group_entities = []
     dialogs = None
     for g in tg_config['index_groups']:
@@ -108,9 +110,13 @@ class Indexer:
             dialogs = await client.get_dialogs()
           group = [d.entity for d in dialogs if d.entity.id == g][0]
 
+      if g in tg_config['ocr_ignore_groups']:
+        ocr_ignore_group_ids.append(group.id)
+
       index_group_ids.append(group.id)
       group_entities.append(group)
 
+    self.ocr_ignore_group_ids = ocr_ignore_group_ids
     client.add_event_handler(self.on_message, events.NewMessage(chats=index_group_ids))
     client.add_event_handler(self.on_message, events.MessageEdited(chats=index_group_ids))
 

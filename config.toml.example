@@ -12,11 +12,15 @@ index_groups = [
 # socks5 proxy
 # proxy = ["127.0.0.1", "1080"]
 # mark_as_read = true
-# use an OCR service for images; service is provided by the backend of https://github.com/lilydjwg/paddleocr-web
-# ocr_url = "http://localhost:12345"
+# ocr_ignore_groups = [
+#   "@group1",
+#   "1000000000",
+# ]
 
 [database]
 url = "postgresql:///luoxu"
+# use an OCR service for images; service is provided by the backend of https://github.com/lilydjwg/paddleocr-web
+# ocr_url = "http://localhost:12345"
 
 [web]
 listen_host = "localhost"
