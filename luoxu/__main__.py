@@ -102,13 +102,13 @@ class Indexer:
       if g.startswith('@'):
         group = await client.get_entity(g)
       else:
-        g = int(g)
+        g2 = int(g)
         try:
-          group = await client.get_entity(g)
+          group = await client.get_entity(g2)
         except ValueError:
           if dialogs is None:
             dialogs = await client.get_dialogs()
-          group = [d.entity for d in dialogs if d.entity.id == g][0]
+          group = [d.entity for d in dialogs if d.entity.id == g2][0]
 
       if g in tg_config['ocr_ignore_groups']:
         ocr_ignore_group_ids.append(group.id)
