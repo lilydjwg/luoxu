@@ -110,7 +110,7 @@ class Indexer:
             dialogs = await client.get_dialogs()
           group = [d.entity for d in dialogs if d.entity.id == g2][0]
 
-      if g in tg_config['ocr_ignore_groups']:
+      if g in tg_config.get('ocr_ignore_groups', ()):
         ocr_ignore_group_ids.append(group.id)
 
       index_group_ids.append(group.id)
