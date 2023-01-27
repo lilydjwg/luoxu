@@ -40,6 +40,9 @@ CREATE TABLE messages_y2022 PARTITION OF messages
 CREATE TABLE messages_y2023 PARTITION OF messages
     FOR VALUES FROM ('2023-01-01') TO ('2024-01-01');
 
+CREATE TABLE messages_y2024 PARTITION OF messages
+    FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
+
 -- for dedupe and cutwords:
 --
 -- explain analyze SELECT msgid, text FROM messages
