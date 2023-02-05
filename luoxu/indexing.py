@@ -1,14 +1,10 @@
 import logging
-import inspect
 import asyncio
 from typing import Optional
 
 from opencc import OpenCC
 import telethon
-import aiohttp
 from telethon.tl import types
-
-from .lib.expiringdict import ExpiringDict
 
 logger = logging.getLogger(__name__)
 
@@ -28,72 +24,13 @@ def text_to_query(s):
 
   return s
 
-_ocr_cache = ExpiringDict(3600)
-_ocr_cache_lock = asyncio.Lock()
-_aiosession = None
-async def _ocr_img(client, media, ocr_url, group_title):
-  if isinstance(media, types.MessageMediaPhoto):
-    key = media.photo.id
-  else:
-    key = media.document.id
-
-  async with _ocr_cache_lock:
-    cached = _ocr_cache.get(key)
-    if cached is None:
-      # coroutine cannot be awaited twice, but task can
-      fu = asyncio.create_task(_ocr_img_no_cache(client, media, ocr_url, group_title))
-      _ocr_cache[key] = fu
-
-  if cached is None:
-    return await fu
-  else:
-    if inspect.isawaitable(cached):
-      return await cached
-    else:
-      return cached
-
-async def _ocr_img_no_cache(client, media, ocr_url, group_title):
-  if isinstance(media, types.MessageMediaPhoto):
-    key = media.photo.id
-    mime_type = 'image/jpeg'
-  else:
-    key = media.document.id
-    mime_type = media.document.mime_type
-
-  logger.info('<%s> Downloading media %d...', group_title, key)
-  imgdata = await client.download_media(media, file=bytes)
-
-  global _aiosession
-  if _aiosession is None:
-    _aiosession = aiohttp.ClientSession()
-
-  formdata = aiohttp.FormData()
-  formdata.add_field(
-    'file', imgdata,
-    filename = 'image', content_type = mime_type,
-  )
-  formdata.add_field('lang', 'zh-Hans')
-  logger.info('<%s> Uploading media %d to OCR service...', group_title, key)
+async def format_msg(msg, ocrsvc=None) -> Optional[str]:
   try:
-    res = await _aiosession.post(ocr_url, data=formdata)
-    j = await res.json()
-  except Exception as e:
-    logger.error('OCR failed with %r', e)
-    return []
-
-  logger.info('OCR %d done.', key)
-  ret = [r[1][0] for r in j['result']]
-  _ocr_cache[key] = ret
-  _ocr_cache.expire()
-  return ret
-
-async def format_msg(msg, ocr_url=None) -> Optional[str]:
-  try:
-    return await asyncio.wait_for(_format_msg(msg, ocr_url=ocr_url), 60)
+    return await asyncio.wait_for(_format_msg(msg, ocrsvc=ocrsvc), 60)
   except asyncio.TimeoutError:
     logger.error('timed out formatting a message: %r', msg.to_dict())
 
-async def _format_msg(msg, ocr_url=None) -> str:
+async def _format_msg(msg, ocrsvc=None) -> str:
   if isinstance(msg, telethon.tl.patched.MessageService):
     # pinning messages
     return
@@ -123,11 +60,11 @@ async def _format_msg(msg, ocr_url=None) -> str:
       if getattr(a, 'performer', None) and getattr(a, 'title', None):
         text.append(f'[audio] {a.title} - {a.performer}')
 
-  if ocr_url and (media := msg.media):
+  if ocrsvc and (media := msg.media):
     if isinstance(media, types.MessageMediaPhoto) \
        or (isinstance(media, types.MessageMediaDocument)
            and msg.media.document.mime_type.startswith('image/')):
-      if ocr_text := await _ocr_img(msg.client, media, ocr_url, msg.chat.title):
+      if ocr_text := await ocrsvc.ocr_img(msg.client, media, msg.chat.title):
         text.append('[image]')
         text.extend(ocr_text)
 

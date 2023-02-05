@@ -11,6 +11,7 @@ from .util import format_name, UpdateLoaded
 from .indexing import text_to_query, format_msg
 from .types import SearchQuery, GroupNotFound
 from .ctxvars import msg_source
+from .ocr import OCRService
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,8 @@ class PostgreStore:
   def __init__(self, config: dict[str, Any]) -> None:
     self.address = config['url']
     first_year = config.get('first_year', 2016)
-    self.ocr_url = config.get('ocr_url')
+    if ocr_url := config.get('ocr_url'):
+      self.ocrsvc = OCRService(ocr_url, config.get('ocr_socket'))
     self.earliest_time = datetime.datetime(first_year, 1, 1).astimezone()
     self.pool = None
 
@@ -48,7 +50,7 @@ class PostgreStore:
 
   async def insert_messages(self, msgs, update_loaded, use_ocr = True):
     data = [(msg, text) for msg in msgs
-            if (text := await format_msg(msg, self.ocr_url if use_ocr else None)) is not None]
+            if (text := await format_msg(msg, self.ocrsvc if use_ocr else None)) is not None]
     if not data:
       return
 

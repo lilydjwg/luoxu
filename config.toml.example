@@ -21,6 +21,8 @@ index_groups = [
 url = "postgresql:///luoxu"
 # use an OCR service for images; service is provided by the backend of https://github.com/lilydjwg/paddleocr-web
 # ocr_url = "http://localhost:12345"
+# use a UNIX domain socket to connect
+# ocr_socket = "/path/to/socket/file"
 
 [web]
 listen_host = "localhost"
