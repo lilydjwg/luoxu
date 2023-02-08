@@ -20,7 +20,7 @@
 
 * 安装 PostgreSQL 及 pgroonga
 * 使用 `createdb` 命令创建数据库
-* 使用 `postgre` 用户身份连接到该数据库，并执行 `CREATE EXTENSION pgroonga;`
+* 使用 `postgres` 用户身份连接到该数据库，并执行 `CREATE EXTENSION pgroonga;`
 * 导入 `dbsetup.sql` 脚本，如 `psql DBNAME < dbsetup.sql`
 
 运行
