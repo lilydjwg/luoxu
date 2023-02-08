@@ -19,6 +19,10 @@ index_groups = [
 #   "@group1",
 #   "1000000000",
 # ]
+# auth_enable_groups = [
+#   "1000000000",
+# ]
+# auth_expire = 3600 # 1 hour
 
 [database]
 url = "postgresql:///luoxu"
@@ -37,4 +41,8 @@ ghost_avatar = "ghost.jpg"
 origins = [
   "http://localhost",
 ]
+
+# [plugin.auth]
+# enabled = true
+# web_url = "http://localhost"
 # vim: se ft=toml:

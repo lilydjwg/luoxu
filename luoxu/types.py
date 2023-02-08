@@ -7,6 +7,7 @@ class SearchQuery(NamedTuple):
   sender: Optional[str]
   start: Optional[datetime.datetime]
   end: Optional[datetime.datetime]
+  token: Optional[str]
 
 class GroupNotFound(Exception):
   def __init__(self, group):

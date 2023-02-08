@@ -44,11 +44,21 @@ def html_or_text(m):
   return ' '
 
 class SearchHandler(BaseHandler):
+  def __init__(self, dbconn, auth_enable_groups, token_manager):
+    super().__init__(dbconn)
+    self.auth_enable_groups = auth_enable_groups
+    self.token_manager = token_manager
+
   async def _get(self, request):
     try:
       q = self._parse_query(request.query)
     except Exception:
       raise web.HTTPBadRequest
+    if q.group in self.auth_enable_groups:
+      if not q.token:
+        raise web.HTTPUnauthorized
+      if not self.token_manager.is_valid(q.group, q.token):
+        raise web.HTTPForbidden
     try:
       groupinfo, messages = await self.dbconn.search(q)
     except GroupNotFound:
@@ -75,12 +85,13 @@ class SearchHandler(BaseHandler):
     terms = query.get('q')
     sender = int(query.get('sender', 0))
     start = query.get('start')
+    token = query.get('token', '')
     if start:
       start = util.fromtimestamp(int(start))
     end = query.get('end')
     if end:
       end = util.fromtimestamp(int(end))
-    return SearchQuery(group, terms, sender, start, end)
+    return SearchQuery(group, terms, sender, start, end, token)
 
 class GroupsHandler(BaseHandler):
   async def _get(self, request):
@@ -174,10 +185,12 @@ def setup_app(
   *,
   prefix = '',
   origins = (),
+  auth_enable_groups = (),
+  token_manager = None,
 ):
   app = web.Application()
   app['origins'] = origins
-  app.router.add_get(f'{prefix}/search', SearchHandler(dbconn).get)
+  app.router.add_get(f'{prefix}/search', SearchHandler(dbconn, auth_enable_groups, token_manager).get)
   app.router.add_get(f'{prefix}/groups', GroupsHandler(dbconn).get)
   app.router.add_get(f'{prefix}/names', NamesHandler(dbconn).get)
 
