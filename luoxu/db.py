@@ -97,7 +97,11 @@ class PostgreStore:
     direction: Literal[1, -1], msgid: int,
   ) -> None:
     if direction == 1:
-      sql = '''update tg_groups set loaded_last_id = $1 where group_id = $2 and loaded_last_id < $1'''
+      sql = '''
+        update tg_groups set loaded_last_id = $1
+        where group_id = $2 and
+          (loaded_last_id < $1 or loaded_last_id is null)
+      '''
     elif direction == -1:
       sql = '''update tg_groups set loaded_first_id = $1 where group_id = $2'''
     else:
