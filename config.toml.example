@@ -20,7 +20,7 @@ index_groups = [
 [database]
 url = "postgresql:///luoxu"
 # use an OCR service for images; service is provided by the backend of https://github.com/lilydjwg/paddleocr-web
-# ocr_url = "http://localhost:12345"
+# ocr_url = "http://localhost:12345/api"
 # use a UNIX domain socket to connect
 # ocr_socket = "/path/to/socket/file"
 
