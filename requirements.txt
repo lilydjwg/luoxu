@@ -1,5 +1,4 @@
 asyncpg
 telethon
-opencc
 aiohttp
 tomli

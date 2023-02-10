@@ -4,3 +4,4 @@ local.toml
 *.session-journal
 userdict.txt
 StopWords-simple.txt
+querytrans.so

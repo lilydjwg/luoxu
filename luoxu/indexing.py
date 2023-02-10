@@ -2,27 +2,15 @@ import logging
 import asyncio
 from typing import Optional
 
-from opencc import OpenCC
 import telethon
 from telethon.tl import types
 
+import querytrans
+
 logger = logging.getLogger(__name__)
 
-CONVERTERS = [
-  OpenCC('s2tw'),
-  OpenCC('tw2s'),
-  OpenCC('s2twp'),
-  OpenCC('tw2sp'),
-]
-
 def text_to_query(s):
-  variants = {c.convert(s) for c in CONVERTERS}
-  if len(variants) > 1:
-    s = ' OR '.join(f'({x})' for x in variants)
-  else:
-    s = variants.pop()
-
-  return s
+  return querytrans.transform(s)
 
 async def format_msg(msg, ocrsvc=None) -> Optional[str]:
   try:

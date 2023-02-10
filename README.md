@@ -9,9 +9,12 @@
 配置 luoxu
 ----
 
-* 安装依赖请见 `requirements.txt` 文件
+* 安装 Rust nightly 以及 OpenCC 库
+* Python 库依赖请见 `requirements.txt` 文件
 * [获取](https://core.telegram.org/api/obtaining_api_id)一份 Telegram API key
+* 在 `querytrans` 目录下运行 `cargo build --release` 然后把生成的文件（`target/release/libquerytrans.so`）复制为 `querytrans.so` 并放在 Python 能找到的地方（比如当前目录）
 * 复制 `config.toml.example` 并按需要修改
+* （可选）词云插件需要在 `luoxu-cutwords` 下运行 `cargo build --release` 并将生成的可执行文件放到 `$PATH` 中
 
 使用 `python -m luoxu.ls_dialogs` 可以列出会话的 id 和名称。频道和群组的 id 可以用于配置文件中。
 
