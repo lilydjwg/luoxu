@@ -10,9 +10,23 @@
 ----
 
 * 安装 Rust nightly 以及 OpenCC 库
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup toolchain install nightly
+
+sudo apt update
+sudo apt install doxygen cmake wget
+wget https://github.com/BYVoid/OpenCC/archive/refs/tags/ver.1.1.4.tar.gz
+tar xf ver.1.1.4.tar.gz
+cd OpenCC-*
+make -j$(nproc) PREFIX=/usr
+sudo make PREFIX=/usr install
+```
+
 * Python 库依赖请见 `requirements.txt` 文件
 * [获取](https://core.telegram.org/api/obtaining_api_id)一份 Telegram API key
-* 在 `querytrans` 目录下运行 `cargo build --release` 然后把生成的文件（`target/release/libquerytrans.so`）复制为 `querytrans.so` 并放在 Python 能找到的地方（比如当前目录）
+* 在 `querytrans` 目录下运行 `rustup run nightly cargo build --release` 然后把生成的文件（`target/release/libquerytrans.so`）复制为 `querytrans.so` 并放在 Python 能找到的地方（比如当前目录）
 * 复制 `config.toml.example` 并按需要修改
 * （可选）词云插件需要在 `luoxu-cutwords` 下运行 `cargo build --release` 并将生成的可执行文件放到 `$PATH` 中
 
