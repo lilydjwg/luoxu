@@ -9,10 +9,16 @@
 配置 luoxu
 ----
 
-* 安装 Rust nightly 以及 OpenCC 库
+* 安装 Rust nightly 以及 [OpenCC](https://github.com/BYVoid/OpenCC) 库。
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup toolchain install nightly
+```
+
 * Python 库依赖请见 `requirements.txt` 文件
 * [获取](https://core.telegram.org/api/obtaining_api_id)一份 Telegram API key
-* 在 `querytrans` 目录下运行 `cargo build --release` 然后把生成的文件（`target/release/libquerytrans.so`）复制为 `querytrans.so` 并放在 Python 能找到的地方（比如当前目录）
+* 在 `querytrans` 目录下运行 `rustup run nightly cargo build --release` 然后把生成的文件（`target/release/libquerytrans.so`）复制为 `querytrans.so` 并放在 Python 能找到的地方（比如当前目录）需要注意的是：构建 `querytrans` 之前需要提前准备好 python 环境，如果与运行 luoxu 的环境不一致将会出错。
 * 复制 `config.toml.example` 并按需要修改
 * （可选）词云插件需要在 `luoxu-cutwords` 下运行 `cargo build --release` 并将生成的可执行文件放到 `$PATH` 中
 
