@@ -37,7 +37,8 @@ fn transform_simple(simp: Simple, neg: bool) -> Vec<Simple> {
 
 fn transform_term(a: Term, neg: bool) -> Vec<Simple> {
   let s = &a.0;
-  let ss: HashSet<String> = OPENCC.iter().map(|cc| cc.convert(s)).collect();
+  let mut ss: HashSet<String> = OPENCC.iter().map(|cc| cc.convert(s)).collect();
+  ss.insert(s.into());
   let inner = if ss.len() == 1 {
     Simple::Term(a)
   } else if neg {
