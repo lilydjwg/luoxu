@@ -23,6 +23,8 @@ class PostgreStore:
     first_year = config.get('first_year', 2016)
     if ocr_url := config.get('ocr_url'):
       self.ocrsvc = OCRService(ocr_url, config.get('ocr_socket'))
+    else:
+      self.ocrsvc = None
     self.earliest_time = datetime.datetime(first_year, 1, 1).astimezone()
     self.pool = None
 
@@ -49,6 +51,7 @@ class PostgreStore:
     )
 
   async def insert_messages(self, msgs, update_loaded, use_ocr = True):
+    use_ocr = self.ocrsvc and use_ocr
     data = [(msg, text) for msg in msgs
             if (text := await format_msg(msg, self.ocrsvc if use_ocr else None)) is not None]
     if not data:
