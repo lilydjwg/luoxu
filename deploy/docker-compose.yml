@@ -1,0 +1,25 @@
+version: '2'
+services:
+  db:
+    image: groonga/pgroonga:2.4.5-debian-13
+      #ports:
+      #  - 5432:5432
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d
+      - ./db/data:/var/lib/postgresql/data:Z
+    environment:
+      POSTGRES_DB: luoxu
+      POSTGRES_PASSWORD: PGroonga
+      POSTGRES_USER: PGroonga
+  luoxu-back:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    container_name: luoxu
+    ports:
+      - 9008:9008
+    volumes:
+      - ./myid.session:/config/myid.session 
+      - ./config.toml:/app/config.toml
+    links:
+      - "db:database"

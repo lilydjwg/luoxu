@@ -2,3 +2,4 @@ asyncpg
 telethon
 aiohttp
 tomli
+PySocks
