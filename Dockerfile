@@ -47,7 +47,6 @@ COPY --from=builder-image /build/querytrans/target/release/libquerytrans.so /app
 
 COPY luoxu /app/luoxu
 COPY requirements.txt /app
-COPY querytrans.so /app
 COPY ghost.jpg /app
 COPY nobody.jpg /app
 COPY requirements.txt .
