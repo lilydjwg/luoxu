@@ -128,7 +128,11 @@ class Indexer:
           await self.run_on_connected(client, db, group_entities)
           logger.warning('disconnected, reconnecting in 1s')
           await asyncio.sleep(1)
-        except (ConnectionError, asyncio.CancelledError) as e:
+        except (
+          ConnectionError,
+          asyncio.CancelledError,
+          asyncio.exceptions.IncompleteReadError,
+        ) as e:
           if isinstance(e.__context__, KeyboardInterrupt):
             break
           else:
