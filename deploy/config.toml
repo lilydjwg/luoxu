@@ -1,0 +1,37 @@
+[telegram]
+api_id = 10000
+api_hash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+account = "+1234567890" 
+session_db = "/config/myid"
+index_groups = [
+  "@group1",
+  "@group2",
+  "1000000000",
+]
+# ipv6 = false
+# socks5 proxy
+# proxy = ["127.0.0.1", "1080"]
+# mark_as_read = true
+# ocr_ignore_groups = [
+#   "@group1",
+#   "1000000000",
+# ]
+
+[database]
+url = "postgresql://PGroonga:PGroonga@db:5432/luoxu"
+# use an OCR service for images; service is provided by the backend of https://github.com/lilydjwg/paddleocr-web
+# ocr_url = "http://localhost:12345/api"
+# use a UNIX domain socket to connect
+# ocr_socket = "/path/to/socket/file"
+
+[web]
+listen_host = "0.0.0.0"
+listen_port = 9008
+prefix = "/luoxu"
+cache_dir = "cache"
+default_avatar = "nobody.jpg"
+ghost_avatar = "ghost.jpg"
+origins = [
+  "http://localhost",
+]
+# vim: se ft=toml:

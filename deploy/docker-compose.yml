@@ -19,7 +19,7 @@ services:
     ports:
       - 9008:9008
     volumes:
-      - ./myid.session:/config/myid.session 
+      - ./config:/config/myid.session 
       - ./config.toml:/app/config.toml
     links:
       - "db:database"
