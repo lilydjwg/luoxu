@@ -101,12 +101,12 @@ mod test {
   }
 
   #[test]
-  fn simple_negtive() {
+  fn simple_negative() {
     assert_eq!(transform("A - B").unwrap(), String::from("A -B"));
   }
 
   #[test]
-  fn group_negtive() {
+  fn group_negative() {
     assert_eq!(transform("A -(B C)").unwrap(), String::from("A -B -C"));
   }
 
