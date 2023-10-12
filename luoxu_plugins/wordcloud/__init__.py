@@ -58,6 +58,7 @@ async def generate_wordcloud(chat_id, chat_title, target_user, endtime, reply):
     return
 
   stream = io.BytesIO()
+  stream.name = 'wordcloud.png'
   loop = asyncio.get_event_loop()
   await loop.run_in_executor(None, gen_image, words, stream)
   st3 = time.time()
