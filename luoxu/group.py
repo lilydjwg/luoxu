@@ -11,7 +11,7 @@ async def timed_get_messages(client, *args, **kwargs):
     try:
       return await asyncio.wait_for(client.get_messages(*args, **kwargs), 60)
     except asyncio.TimeoutError:
-      logger.error('timed out formatting a message, retrying: %r, %r', args, kwargs)
+      logger.error('timed out getting a message, retrying: %r, %r', args, kwargs)
       await asyncio.sleep(1)
     except Exception:
       logger.exception('error in get_messages')
