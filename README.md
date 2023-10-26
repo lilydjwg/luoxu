@@ -47,7 +47,7 @@ python -m luoxu
 * 可使用 [luoxu-web](https://github.com/lilydjwg/luoxu-web)
 * 修改 `src/App.svelte` 中的 API URL
 * 运行 `npm run build` 编译文件
-* 使用 Web 服务器 serve `public` 目录
+* 使用 Web 服务器 serve `dist` 目录
 
 你也可以使用 Vercel 来方便快捷地部署此项目。
 
