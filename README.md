@@ -27,7 +27,7 @@ rustup toolchain install nightly
 设置数据库
 ----
 
-* 安装 PostgreSQL 及 pgroonga
+* 安装 PostgreSQL 及 pgroonga 2.4.5（更高版本会报错，见 https://github.com/lilydjwg/luoxu/issues/4 ）
 * 使用 `createdb` 命令创建数据库
 * 使用 `postgres` 用户身份连接到该数据库，并执行 `CREATE EXTENSION pgroonga;`
 * 导入 `dbsetup.sql` 脚本，如 `psql DBNAME < dbsetup.sql`
