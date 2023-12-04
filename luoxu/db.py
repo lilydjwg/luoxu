@@ -199,7 +199,7 @@ class PostgreStore:
           raise ValueError
         sql += f''' and text &@~ ${len(params)+1}'''
         params.append(query)
-        highlight = f'''pgroonga_highlight_html(text, pgroonga_query_extract_keywords(${len(params)+1}), 'message_idx') as html'''
+        highlight = f'''pgroonga_highlight_html(text, pgroonga_query_extract_keywords(${len(params)+1})) as html'''
         params.append(query)
       if q.sender:
         sql += f''' and from_user = ${len(params)+1}'''

@@ -27,7 +27,7 @@ rustup toolchain install nightly
 设置数据库
 ----
 
-* 安装 PostgreSQL 及 pgroonga 2.4.5（更高版本会报错，见 https://github.com/lilydjwg/luoxu/issues/4 ）
+* 安装 PostgreSQL 及 pgroonga
 * 使用 `createdb` 命令创建数据库
 * 使用 `postgres` 用户身份连接到该数据库，并执行 `CREATE EXTENSION pgroonga;`
 * 导入 `dbsetup.sql` 脚本，如 `psql DBNAME < dbsetup.sql`
@@ -85,7 +85,8 @@ luoxu 相当于运行一个 Telegram 客户端，其权限是完全的（包括�
 2. `cp /usr/lib/postgresql/pgroonga* /opt/pgsql-13/lib`
 3. 安装新的 pgroonga
 4. 执行升级（`pg_upgrade`）
-5. 升级完成之后需要重新索引：
+5. 如果 pgroonga 版本已更新，执行 [pgroonga 升级流程](https://pgroonga.github.io/upgrade/)
+5. 升级完成之后需要重新索引（如果索引已被连带删除，从 SQL 文件中找到创建索引的语句并执行）：
 
 ```sql
 reindex index usernames_idx;
