@@ -4,4 +4,8 @@ local.toml
 *.session-journal
 userdict.txt
 StopWords-simple.txt
-querytrans.so
+querytrans*.so
+*.egg-info/
+__pycache__/
+target/
+build/

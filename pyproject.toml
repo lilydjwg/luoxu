@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-rust"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "luoxu"
+description = "A Telegram userbot to index Chinese and Japanese group contents."
+readme = "README.md"
+license = { file = "LICENSE" }
+dynamic = ["version"]
+dependencies = [
+  "asyncpg",
+  "telethon",
+  "aiohttp",
+  "tomli; python_version<'3.11'",
+]
+
+[project.urls]
+Homepage = "https://github.com/lilydjwg/luoxu"
+Documentation = "https://github.com/lilydjwg/luoxu/blob/master/README.md"
+Repository = "https://github.com/lilydjwg/luoxu.git"
+Issues = "https://github.com/lilydjwg/luoxu/issues"
+
+[tool.setuptools.packages]
+find = { where = ["luoxu"] }
+
+[[tool.setuptools-rust.ext-modules]]
+target = "querytrans"
+args = ["--profile", "release"]
+path = "querytrans/Cargo.toml"

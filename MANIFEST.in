@@ -1,0 +1,4 @@
+graft querytrans
+global-exclude */target/*
+global-exclude */__pycache__/*
+global-exclude *.pyc

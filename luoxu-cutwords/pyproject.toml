@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-rust"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "luoxu-cutwords"
+dynamic = ["version"]
+
+[[tool.setuptools-rust.bins]]
+target = "luoxu-cutwords"
