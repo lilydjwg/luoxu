@@ -21,8 +21,8 @@ Documentation = "https://github.com/lilydjwg/luoxu/blob/master/README.md"
 Repository = "https://github.com/lilydjwg/luoxu.git"
 Issues = "https://github.com/lilydjwg/luoxu/issues"
 
-[tool.setuptools.packages]
-find = { where = ["luoxu"] }
+[tool.setuptools.packages.find]
+include = ["luoxu*", "luoxu_plugins*"]
 
 [[tool.setuptools-rust.ext-modules]]
 target = "querytrans"
