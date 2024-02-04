@@ -73,8 +73,7 @@ class OCRService:
       return []
 
     logger.info('OCR %d done in %.3fs.', key, elaped)
-    ret = [r[1][0] for r in j['result']]
+    ret = [r[1][0] for r in j['result']] if j['result'] else []
     self._ocr_cache[key] = ret
     self._ocr_cache.expire()
     return ret
-
