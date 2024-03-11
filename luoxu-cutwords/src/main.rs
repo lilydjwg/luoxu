@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{BufReader, BufRead, Write};
+use std::io::{BufReader, BufRead, Write, IsTerminal};
 use std::collections::{HashSet, HashMap};
 
 use eyre::{Result, eyre};
@@ -21,17 +21,18 @@ struct Opt {
 }
 
 fn main() -> Result<()> {
-  if std::env::var("RUST_LOG").is_err() {
-    std::env::set_var("RUST_LOG", "warn")
-  }
-  if std::env::var("RUST_SPANTRACE").is_err() {
-    std::env::set_var("RUST_SPANTRACE", "0");
-  }
-  color_eyre::install()?;
-  tracing_subscriber::fmt::fmt()
+  let filter = EnvFilter::try_from_default_env()
+    .unwrap_or_else(|_| EnvFilter::from("warn"));
+  let isatty = std::io::stderr().is_terminal();
+  let fmt = tracing_subscriber::fmt::fmt()
     .with_writer(std::io::stderr)
-    .with_env_filter(EnvFilter::from_default_env())
-    .init();
+    .with_env_filter(filter)
+    .with_ansi(isatty);
+  if isatty {
+    fmt.init();
+  } else {
+    fmt.without_time().init();
+  }
 
   let opt = Opt::from_args();
   info!("connecting to database");
@@ -109,7 +110,7 @@ fn load_dict(jieba: &mut Jieba) -> Result<()> {
   let mut f = BufReader::new(File::open("userdict.txt")?);
   let mut buf = String::new();
   while f.read_line(&mut buf)? > 0 {
-    let mut it = buf.trim().split_whitespace();
+    let mut it = buf.split_whitespace();
     let word = it.next().ok_or_else(|| eyre!("bad dict line: {}", buf))?;
     let tag = Some(it.next().ok_or_else(|| eyre!("bad dict line: {}", buf))?);
     jieba.add_word(word, None, tag);
