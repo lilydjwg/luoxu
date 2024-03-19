@@ -2,6 +2,9 @@
 api_id = 10000
 api_hash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 account = "+1234567890"
+# device_model = "PC 64bit"
+# system_version = "6.8.1"
+# app_version = "telethon 1.34.0"
 session_db = "mybot"
 index_groups = [
   "@group1",

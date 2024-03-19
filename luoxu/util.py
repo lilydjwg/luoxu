@@ -1,7 +1,10 @@
 import datetime
 from enum import Enum, auto
 
-import tomli
+try:
+  import tomllib
+except ImportError:
+  import tomli as tomllib
 from telethon import TelegramClient
 
 def format_name(user) -> str:
@@ -35,7 +38,7 @@ def run_until_sigint(fu):
 
 def load_config(file):
   with open(file, 'rb') as f:
-    return tomli.load(f)
+    return tomllib.load(f)
 
 class UpdateLoaded(Enum):
   update_none = auto()
@@ -44,13 +47,20 @@ class UpdateLoaded(Enum):
   update_both = auto()
 
 def create_client(tg_config):
+  kwargs = {}
+  for k in ['device_model', 'system_version', 'app_version']:
+    if v := tg_config.get(k):
+      kwargs[k] = v
+
   client = TelegramClient(
     tg_config['session_db'],
     tg_config['api_id'],
     tg_config['api_hash'],
     use_ipv6 = tg_config.get('ipv6', False),
     auto_reconnect = False, # we would miss updates between connections
+    **kwargs,
   )
+
   if proxy := tg_config.get('proxy'):
     import socks
     client.set_proxy((socks.SOCKS5, proxy[0], int(proxy[1])))
