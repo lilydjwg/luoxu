@@ -29,7 +29,7 @@ async def _format_msg(msg, ocrsvc=None) -> str:
     text.append(m)
 
   if p := msg.poll:
-    poll_text = "\n".join(a.text for a in p.poll.answers)
+    poll_text = "\n".join(a.text.text for a in p.poll.answers)
     text.append(f'[poll] {p.poll.question}\n{poll_text}')
 
   if w := msg.web_preview:
