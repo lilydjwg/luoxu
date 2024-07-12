@@ -64,13 +64,14 @@ async def generate_wordcloud(chat_id, chat_title, target_user, endtime, reply):
   st3 = time.time()
   logger.info('生成完成，用时 %.3fs', st3 - st2)
 
+  stream.seek(0)
   await reply(
     f'落絮词云为您生成消息词云\n'
     f'{chat_title} 群组 {utils.get_display_name(target_user)}\n'
     f'从 {endtime:%Y-%m-%d %H:%M:%S}\n'
     f'到 {st:%Y-%m-%d %H:%M:%S}\n'
     f'共 {total_messages} 条消息',
-    file = (stream.getvalue() if words else None),
+    file = (stream if words else None),
   )
   logger.info('回复完成，用时 %.3fs', time.time() - st3)
 
