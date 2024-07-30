@@ -7,13 +7,13 @@ use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 use jieba_rs::Jieba;
 use postgres::{Client, NoTls};
-use structopt::StructOpt;
+use clap::Parser;
 
 mod db;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "luoxu-cutwords", about = "load messages and analyze")]
-struct Opt {
+#[derive(Debug, Parser)]
+#[command(name = "luoxu-cutwords", about = "load messages and analyze")]
+struct Args {
   dbstring: String,
   group_id: i64,
   endtime: u64,
@@ -34,12 +34,12 @@ fn main() -> Result<()> {
     fmt.without_time().init();
   }
 
-  let opt = Opt::from_args();
+  let args = Args::parse();
   info!("connecting to database");
-  let client = Client::connect(&opt.dbstring, NoTls)?;
+  let client = Client::connect(&args.dbstring, NoTls)?;
   let msg_iter = db::MessageIter::new(
-    client, opt.group_id, opt.endtime,
-    if opt.user_id == 0 { None } else { Some(opt.user_id) },
+    client, args.group_id, args.endtime,
+    if args.user_id == 0 { None } else { Some(args.user_id) },
   )?;
 
   info!("loading jieba");
