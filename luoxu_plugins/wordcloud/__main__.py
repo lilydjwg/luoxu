@@ -9,7 +9,7 @@ async def reply(text, file=None):
   print(text)
   if file:
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
-      f.write(file)
+      f.write(file.read())
       print(f'image saved as {f.name}')
 
 async def main():
