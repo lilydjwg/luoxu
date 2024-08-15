@@ -23,6 +23,8 @@ RUN cargo build --release
 # 第二步：运行阶段
 FROM python:3.11-slim
 
+LABEL org.opencontainers.image.source=https://github.com/seele0oo/luoxu
+
 # 安装运行所需的依赖项
 RUN apt-get update && \
     apt-get install -y libopencc1.1 postgresql-client && \
