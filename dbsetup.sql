@@ -1,3 +1,5 @@
+create extension pgroonga;
+
 create table tg_groups (
   group_id bigint unique not null primary key,
   name text not null,

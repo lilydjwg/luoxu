@@ -1,29 +1,12 @@
-FROM debian:bookworm-slim
-# Document https://pgroonga.github.io/install/debian.html
-
-# 安装必要的工具和依赖
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    lsb-release \
-    wget \
-    gnupg \
-    && rm -rf /var/lib/apt/lists/*
-
-# 添加 PostgreSQL APT 存储库
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release --codename --short)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
-    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-
-# 更新APT并安装 PostgreSQL 和 pgroonga
-RUN apt-get update && \
-    apt-get install -y -V postgresql-15-pgdg-pgroonga
+FROM groonga/pgroonga:3.2.2-alpine-15
 
 # 设置环境变量
-ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=mysecretpassword
-ENV POSTGRES_DB=luoxu_db
+ENV POSTGRES_DB=PGroonga
+ENV POSTGRES_USER=PGroonga
+ENV POSTGRES_PASSWORD=PGroonga
 
 # 复制数据库初始化脚本
 COPY dbsetup.sql /docker-entrypoint-initdb.d/
 
-# 设置默认命令启动 PostgreSQL
+# 启动容器时运行的命令
 CMD ["postgres"]
