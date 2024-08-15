@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - ci
+      - fix-dockerfiel
   pull_request:
     branches:
       - main
