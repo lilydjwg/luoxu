@@ -1,4 +1,4 @@
-FROM postgres:17
+FROM postgres:16
 
 # 安装 pgroonga
 RUN apt-get update && apt-get install -y pgroonga && rm -rf /var/lib/apt/lists/*
