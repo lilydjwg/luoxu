@@ -1,5 +1,9 @@
 FROM postgres:16
 # Document https://pgroonga.github.io/install/debian.html
+
+# 设置超级用户密码
+ENV POSTGRES_PASSWORD=mysecretpassword
+
 # 安装必要的工具和依赖
 RUN apt-get update && apt-get install -y \
     ca-certificates \
