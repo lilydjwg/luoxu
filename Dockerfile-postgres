@@ -1,8 +1,5 @@
-FROM postgres:14
+FROM debian:bookworm-slim
 # Document https://pgroonga.github.io/install/debian.html
-
-# 设置超级用户密码
-ENV POSTGRES_PASSWORD=mysecretpassword
 
 # 安装必要的工具和依赖
 RUN apt-get update && apt-get install -y \
@@ -10,30 +7,23 @@ RUN apt-get update && apt-get install -y \
     lsb-release \
     wget \
     gnupg \
-    build-essential \
-    pkg-config \
-    zlib1g-dev \
-    libmsgpack-dev \
-    libzmq3-dev \
-    libevent-dev \
-    libmecab-dev \
-    liblz4-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 添加 Apache Arrow 和 Groonga 的 APT 源 并安装 Groonga
-RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb && \
-    apt-get install -y ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb && \
-    wget https://packages.groonga.org/debian/groonga-apt-source-latest-$(lsb_release --codename --short).deb && \
-    apt-get install -y ./groonga-apt-source-latest-$(lsb_release --codename --short).deb
+# 添加 PostgreSQL APT 存储库
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release --codename --short)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
+    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 
-# 确认扩展已正确安装
-RUN pg_config --pkglibdir
+# 更新APT并安装 PostgreSQL 和 pgroonga
+RUN apt-get update && \
+    apt-get install -y -V postgresql-16-pgdg-pgroonga
+
+# 设置环境变量
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=mysecretpassword
+ENV POSTGRES_DB=luoxu_db
 
 # 复制数据库初始化脚本
 COPY dbsetup.sql /docker-entrypoint-initdb.d/
 
-# 初始化数据库和扩展
-RUN docker-entrypoint.sh postgres & sleep 10 && \
-    psql -U postgres -c "CREATE DATABASE luoxu_db;" && \
-    psql -U postgres -d luoxu_db -c "CREATE EXTENSION pgroonga;" && \
-    psql -U postgres -d luoxu_db -f /docker-entrypoint-initdb.d/dbsetup.sql
+# 设置默认命令启动 PostgreSQL
+CMD ["postgres"]
