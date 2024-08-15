@@ -1,5 +1,7 @@
 FROM groonga/pgroonga:3.2.2-alpine-15
 
+LABEL org.opencontainers.image.source=https://github.com/seele0oo/luoxu
+
 # 复制数据库初始化脚本
 COPY dbsetup.sql /docker-entrypoint-initdb.d/
 
