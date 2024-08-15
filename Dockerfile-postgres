@@ -1,10 +1,5 @@
 FROM groonga/pgroonga:3.2.2-alpine-15
 
-# 设置环境变量
-ENV POSTGRES_DB=PGroonga
-ENV POSTGRES_USER=PGroonga
-ENV POSTGRES_PASSWORD=PGroonga
-
 # 复制数据库初始化脚本
 COPY dbsetup.sql /docker-entrypoint-initdb.d/
 
