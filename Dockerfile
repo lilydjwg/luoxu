@@ -25,7 +25,7 @@ FROM python:3.11-slim
 
 # 安装运行所需的依赖项
 RUN apt-get update && \
-    apt-get install -y libopencc1 postgresql-client && \
+    apt-get install -y libopencc1.1 postgresql-client && \
     rm -rf /var/lib/apt/lists/*
 
 # 设置工作目录
