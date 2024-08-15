@@ -1,4 +1,4 @@
-FROM postgres:16
+FROM postgres:14
 # Document https://pgroonga.github.io/install/debian.html
 
 # 设置超级用户密码
@@ -25,6 +25,9 @@ RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | 
     apt-get install -y ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb && \
     wget https://packages.groonga.org/debian/groonga-apt-source-latest-$(lsb_release --codename --short).deb && \
     apt-get install -y ./groonga-apt-source-latest-$(lsb_release --codename --short).deb
+
+# 确认扩展已正确安装
+RUN pg_config --pkglibdir
 
 # 复制数据库初始化脚本
 COPY dbsetup.sql /docker-entrypoint-initdb.d/

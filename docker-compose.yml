@@ -1,0 +1,31 @@
+services:
+  luoxu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: luoxu
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:yourpassword@db:5432/luoxu_db
+    depends_on:
+      - db
+    volumes:
+      - luoxu_data:/app/data
+      - ./config/config.toml:/app/config.toml
+
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile-postgres
+    container_name: luoxu_db
+    environment:
+      POSTGRES_DB: luoxu_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+  luoxu_data:
