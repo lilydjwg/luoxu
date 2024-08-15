@@ -1,14 +1,28 @@
 FROM postgres:16
+# Document https://pgroonga.github.io/install/debian.html
+# 安装必要的工具和依赖
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    lsb-release \
+    wget \
+    gnupg \
+    build-essential \
+    pkg-config \
+    zlib1g-dev \
+    libmsgpack-dev \
+    libzmq3-dev \
+    libevent-dev \
+    libmecab-dev \
+    liblz4-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# 安装 curl 和 gnupg，用于处理 GPG 密钥
-RUN apt-get update && apt-get install -y curl gnupg
+# 添加 Apache Arrow 和 Groonga 的 APT 源
+RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb && \
+    apt-get install -y ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb && \
+    wget https://packages.groonga.org/debian/groonga-apt-source-latest-$(lsb_release --codename --short).deb && \
+    apt-get install -y ./groonga-apt-source-latest-$(lsb_release --codename --short).deb
 
-# 添加 pgroonga 官方软件包源
-RUN echo "deb http://packages.groonga.org/debian/ bookworm main" > /etc/apt/sources.list.d/groonga.list && \
-    curl -fsSL https://packages.groonga.org/debian/groonga-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/groonga-keyring.gpg
-
-
-# 安装 pgroonga
+# 更新APT并安装 Groonga
 RUN apt-get update && \
     apt-get install -y pgroonga && \
     rm -rf /var/lib/apt/lists/*
