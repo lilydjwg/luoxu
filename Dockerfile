@@ -47,7 +47,7 @@ COPY --from=builder /app/luoxu-cutwords/target/release/luoxu-cutwords /usr/local
 COPY . /app
 
 # 暴露应用端口
-EXPOSE 8000
+EXPOSE 9008
 
 # 设置默认命令来运行 Luoxu
 CMD ["python", "-m", "luoxu"]
