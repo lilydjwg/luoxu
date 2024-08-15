@@ -1,11 +1,20 @@
 services:
-  luoxu:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: luoxu
+  caddy:
+    image: caddy:latest
+    container_name: luoxu_caddy
     ports:
-      - "8000:8000"
+      - "15100:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - luoxu
+      - web
+
+  luoxu:
+    image: ghcr.io/seele0oo/luoxu/luoxu:latest
+    container_name: luoxu
+    # ports:
+    #   - "9008:9008"
     environment:
       - DATABASE_URL=postgresql://postgres:yourpassword@db:5432/luoxu_db
     depends_on:
@@ -15,9 +24,7 @@ services:
       - ./config/config.toml:/app/config.toml
 
   db:
-    build:
-      context: .
-      dockerfile: Dockerfile-postgres
+    image: ghcr.io/seele0oo/luoxu/luoxu-postgres-db:latest
     container_name: luoxu_db
     environment:
       POSTGRES_DB: luoxu_db
@@ -25,6 +32,15 @@ services:
       POSTGRES_PASSWORD: yourpassword
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  web:
+    image: ghcr.io/seele0oo/luoxu/luoxu-web:latest
+    container_name: luoxu_web
+    # ports:
+    #   - "5173:5173"
+    environment:
+      LUOXU_URL: http://luoxu:9008/luoxu
+      # 这个是实际对外暴露的地址,建议设置为公网地址
 
 volumes:
   pgdata:
