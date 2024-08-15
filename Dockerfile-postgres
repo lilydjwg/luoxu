@@ -15,7 +15,7 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release --codename 
 
 # 更新APT并安装 PostgreSQL 和 pgroonga
 RUN apt-get update && \
-    apt-get install -y -V postgresql-16-pgdg-pgroonga
+    apt-get install -y -V postgresql-15-pgdg-pgroonga
 
 # 设置环境变量
 ENV POSTGRES_USER=postgres
