@@ -1,0 +1,40 @@
+name: Build and Setup Database
+
+on:
+  push:
+    branches:
+      - main
+      - ci
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  setup-database:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build PostgreSQL with pgroonga
+      run: |
+        docker build -t custom-postgres-db -f Dockerfile-postgres .
+
+    - name: Run PostgreSQL container
+      run: |
+        docker run -d --name test-db -e POSTGRES_PASSWORD=yourpassword custom-postgres-db
+        sleep 10 # 等待数据库服务启动
+
+    - name: Test pgroonga setup
+      run: |
+        docker exec -i test-db psql -U postgres -d luoxu_db -c "SELECT * FROM pg_extension WHERE extname = 'pgroonga';"
+
+    - name: Stop and remove container
+      run: |
+        docker stop test-db
+        docker rm test-db

@@ -1,0 +1,13 @@
+FROM postgres:17
+
+# 安装 pgroonga
+RUN apt-get update && apt-get install -y pgroonga && rm -rf /var/lib/apt/lists/*
+
+# 复制数据库初始化脚本
+COPY dbsetup.sql /docker-entrypoint-initdb.d/
+
+# 初始化数据库和扩展
+RUN docker-entrypoint.sh postgres & sleep 10 && \
+    psql -U postgres -c "CREATE DATABASE luoxu_db;" && \
+    psql -U postgres -d luoxu_db -c "CREATE EXTENSION pgroonga;" && \
+    psql -U postgres -d luoxu_db -f /docker-entrypoint-initdb.d/dbsetup.sql
