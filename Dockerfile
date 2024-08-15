@@ -1,5 +1,5 @@
 # 第一步：构建阶段
-FROM rust:latest as builder
+FROM rustlang/rust:nightly as builder
 
 # 安装依赖库
 RUN apt-get update && \
