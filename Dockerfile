@@ -1,5 +1,5 @@
 # 第一步：构建阶段
-FROM rust:latest as builder
+FROM rustlang/rust:nightly as builder
 
 # 安装依赖库
 RUN apt-get update && \
@@ -25,7 +25,7 @@ FROM python:3.11-slim
 
 # 安装运行所需的依赖项
 RUN apt-get update && \
-    apt-get install -y libopencc1 postgresql-client && \
+    apt-get install -y libopencc1.1 postgresql-client && \
     rm -rf /var/lib/apt/lists/*
 
 # 设置工作目录
