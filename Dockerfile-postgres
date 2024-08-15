@@ -2,7 +2,8 @@ FROM postgres:16
 
 # 添加 pgroonga 官方软件包源
 RUN echo "deb http://packages.groonga.org/debian/ bookworm main" > /etc/apt/sources.list.d/groonga.list && \
-    curl -fsSL https://packages.groonga.org/debian/groonga-apt-source.gpg | tee /etc/apt/trusted.gpg.d/groonga.gpg > /dev/null
+    curl -fsSL https://packages.groonga.org/debian/groonga-apt-source.gpg | gpg --dearmor -o /usr/share/keyrings/groonga-archive-keyring.gpg
+
 
 # 安装 pgroonga
 RUN apt-get update && \
