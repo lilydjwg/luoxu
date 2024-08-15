@@ -1,7 +1,9 @@
 FROM postgres:16
 
 # 安装 pgroonga
-RUN apt-get update && apt-get install -y pgroonga && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y pgroonga && \
+    rm -rf /var/lib/apt/lists/*
 
 # 复制数据库初始化脚本
 COPY dbsetup.sql /docker-entrypoint-initdb.d/
