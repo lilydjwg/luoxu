@@ -32,7 +32,7 @@ jobs:
             -e POSTGRES_PASSWORD=postgres \
             -e POSTGRES_DB=luoxu_db \
             -p 5432:5432 \
-            my-pgroonga-db
+            custom-postgres-db
         sleep 10 # 等待数据库服务启动
 
     - name: Test pgroonga setup
