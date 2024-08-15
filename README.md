@@ -10,6 +10,7 @@
 
 安装与配置
 ====
+## 手动部署
 
 配置 luoxu
 ----
@@ -58,6 +59,11 @@ python -m luoxu
 
 当然了，你也可以自己另外编写 Web 页面来使用此 API。
 
+## docker 部署
+
+[Seele0oO/luoxu-deploy](https://github.com/Seele0oO/luoxu-deploy)
+
+
 注意事项
 ====
 
@@ -91,7 +97,7 @@ luoxu 相当于运行一个 Telegram 客户端，其权限是完全的（包括�
 3. 安装新的 pgroonga
 4. 执行升级（`pg_upgrade`）
 5. 如果 pgroonga 版本已更新，执行 [pgroonga 升级流程](https://pgroonga.github.io/upgrade/)
-5. 升级完成之后需要重新索引（如果索引已被连带删除，从 SQL 文件中找到创建索引的语句并执行）：
+6. 升级完成之后需要重新索引（如果索引已被连带删除，从 SQL 文件中找到创建索引的语句并执行）：
 
 ```sql
 reindex index usernames_idx;
