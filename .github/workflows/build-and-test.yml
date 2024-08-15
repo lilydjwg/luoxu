@@ -42,10 +42,6 @@ jobs:
     #   run: |
     #     docker run --rm luoxu python -m unittest discover -s tests
 
-    - name: Clean up
-      run: |
-        docker rmi luoxu
-
     - name: Tag Docker image
       run: |
         REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
@@ -57,3 +53,4 @@ jobs:
         REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
         docker push ghcr.io/${REPO_OWNER}/${REPO_NAME}/luoxu:latest
+
