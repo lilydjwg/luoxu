@@ -50,7 +50,7 @@ jobs:
       run: |
         REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
-        docker tag custom-postgres-db ghcr.io/${REPO_OWNER}/${REPO_NAME}/luoxu:latest
+        docker tag luoxu ghcr.io/${REPO_OWNER}/${REPO_NAME}/luoxu:latest
 
     - name: Push Docker image to GHCR
       run: |
