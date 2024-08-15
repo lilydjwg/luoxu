@@ -16,16 +16,11 @@ RUN apt-get update && apt-get install -y \
     liblz4-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 添加 Apache Arrow 和 Groonga 的 APT 源
+# 添加 Apache Arrow 和 Groonga 的 APT 源 并安装 Groonga
 RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb && \
     apt-get install -y ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb && \
     wget https://packages.groonga.org/debian/groonga-apt-source-latest-$(lsb_release --codename --short).deb && \
     apt-get install -y ./groonga-apt-source-latest-$(lsb_release --codename --short).deb
-
-# 更新APT并安装 Groonga
-RUN apt-get update && \
-    apt-get install -y pgroonga && \
-    rm -rf /var/lib/apt/lists/*
 
 # 复制数据库初始化脚本
 COPY dbsetup.sql /docker-entrypoint-initdb.d/
