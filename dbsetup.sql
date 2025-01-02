@@ -16,7 +16,7 @@ create table messages (
   updated_at timestamp with time zone
 ) PARTITION BY RANGE (created_at);
 
--- 创建分区表的函数
+-- create partition table function
 CREATE OR REPLACE FUNCTION create_messages_partition(year int)
 RETURNS void AS $$
 BEGIN
@@ -33,7 +33,7 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
--- 初始化历史分区表
+-- initialize historical partition tables
 CREATE OR REPLACE FUNCTION init_message_partitions()
 RETURNS void AS $$
 DECLARE
@@ -41,32 +41,11 @@ DECLARE
     current_year int := extract(year from current_date);
     i int;
 BEGIN
-    FOR i IN start_year..current_year + 1 LOOP
+    FOR i IN start_year..current_year LOOP
         PERFORM create_messages_partition(i);
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;
-
--- 自动创建下一年分区的触发器函数
-CREATE OR REPLACE FUNCTION create_next_year_partition()
-RETURNS trigger AS $$
-DECLARE
-    next_year int;
-BEGIN
-    next_year := extract(year from NEW.created_at) + 1;
-    PERFORM create_messages_partition(next_year);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- 创建触发器
-CREATE TRIGGER ensure_message_partition
-    BEFORE INSERT ON messages
-    FOR EACH ROW
-    EXECUTE FUNCTION create_next_year_partition();
-
--- 初始化现有分区表
-SELECT init_message_partitions();
 
 -- for dedupe and cutwords:
 --
