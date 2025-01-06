@@ -16,32 +16,36 @@ create table messages (
   updated_at timestamp with time zone
 ) PARTITION BY RANGE (created_at);
 
-CREATE TABLE messages_y2016 PARTITION OF messages
-    FOR VALUES FROM ('2016-01-01') TO ('2017-01-01');
+-- create partition table function
+CREATE OR REPLACE FUNCTION create_messages_partition(year int)
+RETURNS void AS $$
+BEGIN
+    EXECUTE format(
+        'CREATE TABLE IF NOT EXISTS messages_y%s PARTITION OF messages 
+         FOR VALUES FROM (%L) TO (%L)',
+        year,
+        format('%s-01-01', year),
+        format('%s-01-01', year + 1)
+    );
+EXCEPTION
+    WHEN duplicate_table THEN
+        NULL;
+END;
+$$ LANGUAGE plpgsql;
 
-CREATE TABLE messages_y2017 PARTITION OF messages
-    FOR VALUES FROM ('2017-01-01') TO ('2018-01-01');
-
-CREATE TABLE messages_y2018 PARTITION OF messages
-    FOR VALUES FROM ('2018-01-01') TO ('2019-01-01');
-
-CREATE TABLE messages_y2019 PARTITION OF messages
-    FOR VALUES FROM ('2019-01-01') TO ('2020-01-01');
-
-CREATE TABLE messages_y2020 PARTITION OF messages
-    FOR VALUES FROM ('2020-01-01') TO ('2021-01-01');
-
-CREATE TABLE messages_y2021 PARTITION OF messages
-    FOR VALUES FROM ('2021-01-01') TO ('2022-01-01');
-
-CREATE TABLE messages_y2022 PARTITION OF messages
-    FOR VALUES FROM ('2022-01-01') TO ('2023-01-01');
-
-CREATE TABLE messages_y2023 PARTITION OF messages
-    FOR VALUES FROM ('2023-01-01') TO ('2024-01-01');
-
-CREATE TABLE messages_y2024 PARTITION OF messages
-    FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
+-- initialize historical partition tables
+CREATE OR REPLACE FUNCTION init_message_partitions()
+RETURNS void AS $$
+DECLARE
+    start_year int := 2016;
+    current_year int := extract(year from current_date);
+    i int;
+BEGIN
+    FOR i IN start_year..current_year LOOP
+        PERFORM create_messages_partition(i);
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
 
 -- for dedupe and cutwords:
 --
