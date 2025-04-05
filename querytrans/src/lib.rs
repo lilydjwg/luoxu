@@ -14,7 +14,7 @@ fn transform_py(s: &str) -> PyResult<String> {
 }
 
 #[pymodule]
-fn querytrans(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn querytrans(m: &Bound<'_, PyModule>) -> PyResult<()> {
   m.add_function(wrap_pyfunction!(transform_py, m)?)?;
   Ok(())
 }
