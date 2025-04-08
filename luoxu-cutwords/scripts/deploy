@@ -1,0 +1,18 @@
+#!/bin/bash -e
+
+cd "$(dirname "$0")/.."
+
+git pull --rebase
+target_dir="$(cargo metadata --format-version 1 --no-deps | jq -r .target_directory)"
+bin=luoxu-cutwords
+
+cargo update
+cargo build --release
+
+install -Dsm755 "$target_dir"/release/$bin ~/bin
+tar c $bin | ssh l.lilydjwg.me tar xvU -C ~/bin
+tar c $bin | ssh -B wlan0 apps.archlinuxcn.org tar xvU -C ~/bin
+
+git add .
+git commit -m "$bin: update deps"
+git push
