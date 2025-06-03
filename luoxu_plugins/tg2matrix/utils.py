@@ -75,6 +75,10 @@ def tg_message_to_html(msg):
 def segment_tgmsg(msg):
   m = msg.message
 
+  if not msg.entities:
+    yield m
+    return
+
   my_entities = [TgEntity(x, True) for x in msg.entities]
   my_entities.extend(reversed([TgEntity(x, False) for x in msg.entities]))
   # sort by offset, but end precedes start
