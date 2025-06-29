@@ -101,4 +101,5 @@ reindex index message_idx;
 不兼容的变更
 ====
 
+* 2025年06月29日, 更新了 OCR 服务的响应格式。请配合新版 [paddleocr-web](https://github.com/lilydjwg/paddleocr-web/commit/8d08d1332ef8df9aa25a256456a5986445005c75) 使用。
 * [2022年06月23日](update-2022-06-23.md)，采用分区表来提升部分查询的性能。需要更新配置文件及数据库。
