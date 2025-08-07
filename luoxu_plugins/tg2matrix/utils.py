@@ -4,6 +4,8 @@ import html
 import struct
 from typing import Literal, Any
 
+from telethon.helpers import add_surrogate, del_surrogate
+
 def recv_n(sock, n):
   data = b''
   while (remaining := n - len(data)) > 0:
@@ -26,7 +28,8 @@ def send_message(socket_path, msg):
 
 def tg_message_to_html(msg):
   ret = []
-  for x in segment_tgmsg(msg):
+  text = add_surrogate(msg.message)
+  for x in segment_tgmsg(text, msg.entities):
     if isinstance(x, str):
       ret.append(html.escape(x, quote=False).replace('\n', '<br>'))
       continue
@@ -65,22 +68,22 @@ def tg_message_to_html(msg):
       case 'underline', 'end':
         ret.append('</u>')
       case 'url', 'start':
-        url = msg.message[x.offset:x.offset + x.value]
+        url = text[x.offset:x.offset + x.value]
+        if not url.startswith('http'):
+          url = 'https://' + url
         ret.append(f'<a href="{url}">')
       case 'url', 'end':
         ret.append('</a>')
 
-  return ''.join(ret)
+  return del_surrogate(''.join(ret))
 
-def segment_tgmsg(msg):
-  m = msg.message
-
-  if not msg.entities:
-    yield m
+def segment_tgmsg(text, entities):
+  if not entities:
+    yield text
     return
 
-  my_entities = [TgEntity(x, True) for x in msg.entities]
-  my_entities.extend(reversed([TgEntity(x, False) for x in msg.entities]))
+  my_entities = [TgEntity(x, True) for x in entities]
+  my_entities.extend(reversed([TgEntity(x, False) for x in entities]))
   # sort by offset, but end precedes start
   # or else we'd get an empty element
   my_entities.sort(
@@ -89,13 +92,13 @@ def segment_tgmsg(msg):
   last_end = 0
   for e in my_entities:
     if e.offset > last_end:
-      yield m[last_end:e.offset]
+      yield text[last_end:e.offset]
     yield e
 
     last_end = e.offset
 
-  if last_end < len(m):
-    yield m[last_end:]
+  if last_end < len(text):
+    yield text[last_end:]
 
 class TgEntity:
   kind: str
