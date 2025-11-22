@@ -109,8 +109,6 @@ class Indexer:
 
     self.ocr_ignore_group_ids = ocr_ignore_group_ids
     self.auth_enable_group_ids = auth_enable_group_ids
-    if self.auth_enable_group_ids != [] and self.auth_bot_token is None:
-      raise ValueError('auth_enable_groups is not empty but auth_bot_token is not set')
     client.add_event_handler(self.on_message, events.NewMessage(chats=index_group_ids))
     client.add_event_handler(self.on_message, events.MessageEdited(chats=index_group_ids))
 
