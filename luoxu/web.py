@@ -4,13 +4,17 @@ import logging
 from html import escape as htmlescape
 import re
 import time
+import json
+import base64
 
 from aiohttp import web
 from telethon.tl.types import User, ChatPhotoEmpty
-from telethon.errors.rpcerrorlist import ChannelPrivateError
+from telethon.errors.rpcerrorlist import ChannelPrivateError, UserNotParticipantError
+from telethon import functions
 
 from . import util
 from .types import SearchQuery, GroupNotFound
+from .auth import Verify_telegram_oauth
 
 logger = logging.getLogger(__name__)
 
@@ -94,21 +98,72 @@ class SearchHandler(BaseHandler):
     return SearchQuery(group, terms, sender, start, end, token)
 
 class GroupsHandler(BaseHandler):
+  def __init__(self, dbconn, client, auth_enable_groups, token_manager, auth_bot_token):
+    super().__init__(dbconn)
+    self.client = client
+    self.auth_enable_groups = auth_enable_groups
+    self.token_manager = token_manager
+    self.auth_bot_token = auth_bot_token
+
   async def _get(self, request):
+    auth_str = request.query.get('auth', '')
+    user_id = None
+    if self.auth_bot_token and auth_str:
+      try:
+        padding = '=' * (4 - len(auth_str) % 4)
+        auth_str += padding
+        data = json.loads(base64.urlsafe_b64decode(auth_str).decode('utf-8'))
+        user_id = Verify_telegram_oauth(self.auth_bot_token, data)
+      except:
+        user_id = None
     groups = await self.dbconn.get_groups()
-    gs = [{
-      'group_id': str(g['group_id']),
-      'name': g['name'],
-      'pub_id': g['pub_id'],
-    } for g in groups]
+    gs = []
+    for g in groups:
+      if g['group_id'] not in self.auth_enable_groups:
+        gs.append({
+          'group_id': str(g['group_id']),
+          'name': g['name'],
+          'pub_id': g['pub_id'],
+        })
+      elif self.client and user_id:
+        try:
+          res = await self.client(functions.channels.GetParticipantRequest(
+              channel=g['group_id'],
+              participant=user_id
+          ))
+          gs.append({
+            'group_id': str(g['group_id']),
+            'name': g['name'],
+            'pub_id': g['pub_id'],
+            'token': self.token_manager.add_token(g['group_id']),
+          })
+        except UserNotParticipantError:
+          pass
+        except:
+          logger.exception('failed to get participant')
+
     gs.sort(key=lambda g: g['name'])
     return web.json_response({
       'groups': gs,
     })
 
 class NamesHandler(BaseHandler):
+  def __init__(self, dbconn, auth_enable_groups, token_manager):
+    super().__init__(dbconn)
+    self.auth_enable_groups = auth_enable_groups
+    self.token_manager = token_manager
+
   async def _get(self, request):
     group = int(request.query.get('g') or 0)
+    if self.auth_enable_groups and group == 0:
+      raise web.HTTPForbidden
+
+    if group in self.auth_enable_groups:
+      if not request.query.get('token'):
+        raise web.HTTPUnauthorized
+      if not self.token_manager.is_valid(group, request.query['token']):
+        raise web.HTTPForbidden
+
     q = request.query['q']
     names = await self.dbconn.find_names(group, q)
     return web.json_response({
@@ -187,12 +242,13 @@ def setup_app(
   origins = (),
   auth_enable_groups = (),
   token_manager = None,
+  auth_bot_token = None,
 ):
   app = web.Application()
   app['origins'] = origins
   app.router.add_get(f'{prefix}/search', SearchHandler(dbconn, auth_enable_groups, token_manager).get)
-  app.router.add_get(f'{prefix}/groups', GroupsHandler(dbconn).get)
-  app.router.add_get(f'{prefix}/names', NamesHandler(dbconn).get)
+  app.router.add_get(f'{prefix}/groups', GroupsHandler(dbconn, client, auth_enable_groups, token_manager, auth_bot_token).get)
+  app.router.add_get(f'{prefix}/names', NamesHandler(dbconn, auth_enable_groups, token_manager).get)
 
   if client:
     ah = AvatarHandler(client, cache_dir, default_avatar, ghost_avatar)

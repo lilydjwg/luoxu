@@ -14,7 +14,7 @@ async def register(indexer, client):
         if chat.id not in enable_groups_ids:
             return
         token = indexer.token_manager.add_token(chat.id)
-        url_message = await event.reply(f"{luoxu_web_url}?token={token}#g={chat.id}")
+        url_message = await event.reply(f"{luoxu_web_url}#token={token}&g={chat.id}")
         await asyncio.sleep(ttl)
         try:
             await url_message.delete()

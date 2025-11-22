@@ -78,6 +78,8 @@ class Indexer:
     ttl = int(tg_config.get('auth_expire', 3600))
     self.token_manager = TokenManager(ttl)
 
+    self.auth_bot_token = tg_config.get('auth_bot_token', None)
+
     await client.start(tg_config['account'])
     index_group_ids = []
     ocr_ignore_group_ids = []
@@ -107,6 +109,8 @@ class Indexer:
 
     self.ocr_ignore_group_ids = ocr_ignore_group_ids
     self.auth_enable_group_ids = auth_enable_group_ids
+    if self.auth_enable_group_ids != [] and self.auth_bot_token is None:
+      raise ValueError('auth_enable_groups is not empty but auth_bot_token is not set')
     client.add_event_handler(self.on_message, events.NewMessage(chats=index_group_ids))
     client.add_event_handler(self.on_message, events.MessageEdited(chats=index_group_ids))
 
@@ -122,8 +126,9 @@ class Indexer:
       os.path.abspath(web_config['ghost_avatar']),
       prefix = web_config['prefix'],
       origins = web_config['origins'],
-      auth_enable_groups = auth_enable_group_ids,
+      auth_enable_groups = self.auth_enable_group_ids,
       token_manager = self.token_manager,
+      auth_bot_token = self.auth_bot_token,
     )
     runner = web.AppRunner(app)
     await runner.setup()

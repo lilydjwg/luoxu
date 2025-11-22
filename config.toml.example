@@ -23,6 +23,7 @@ index_groups = [
 #   "1000000000",
 # ]
 # auth_expire = 3600 # 1 hour
+# auth_bot_token = "1231312313:xxxxxxx"
 
 [database]
 url = "postgresql:///luoxu"
