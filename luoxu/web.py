@@ -4,8 +4,6 @@ import logging
 from html import escape as htmlescape
 import re
 import time
-import json
-import base64
 
 from aiohttp import web
 from telethon.tl.types import User, ChatPhotoEmpty
@@ -101,46 +99,51 @@ class GroupsHandler(BaseHandler):
   def __init__(self, dbconn, client, auth_enable_groups, token_manager, auth_bot_token):
     super().__init__(dbconn)
     self.client = client
-    self.auth_enable_groups = auth_enable_groups
+    self.auth_enable_groups = set(auth_enable_groups)
     self.token_manager = token_manager
     self.auth_bot_token = auth_bot_token
 
+  async def user_in_group(self, group_id, user_id):
+    try:
+      res = await self.client(functions.channels.GetParticipantRequest(
+          channel=group_id,
+          participant=user_id
+      ))
+      return True
+    except UserNotParticipantError:
+      return False
+    except:
+      logger.exception('failed to get participant')
+      return False
+
   async def _get(self, request):
-    auth_str = request.query.get('auth', '')
+    group_id = request.query.get('g')
+    token = request.query.get('token')
     user_id = None
-    if self.auth_bot_token and auth_str:
-      try:
-        padding = '=' * (4 - len(auth_str) % 4)
-        auth_str += padding
-        data = json.loads(base64.urlsafe_b64decode(auth_str).decode('utf-8'))
-        user_id = Verify_telegram_oauth(self.auth_bot_token, data)
-      except:
-        user_id = None
+    if auth_str := request.query.get('auth'):
+      if not (user_id := Verify_telegram_oauth(self.auth_bot_token, auth_str)):
+        raise web.HTTPForbidden
+
     groups = await self.dbconn.get_groups()
     gs = []
     for g in groups:
-      if g['group_id'] not in self.auth_enable_groups:
-        gs.append({
-          'group_id': str(g['group_id']),
+      gid = g['group_id']
+      is_private = gid in self.auth_enable_groups
+      has_access = False
+      if is_private:
+        has_access = (
+            (user_id and await self.user_in_group(gid, user_id)) or 
+            (token and group_id == str(gid) and self.token_manager.is_valid(gid, token))
+        )
+      if not is_private or has_access:
+        item = {
+          'group_id': str(gid),
           'name': g['name'],
           'pub_id': g['pub_id'],
-        })
-      elif self.client and user_id:
-        try:
-          res = await self.client(functions.channels.GetParticipantRequest(
-              channel=g['group_id'],
-              participant=user_id
-          ))
-          gs.append({
-            'group_id': str(g['group_id']),
-            'name': g['name'],
-            'pub_id': g['pub_id'],
-            'token': self.token_manager.add_token(g['group_id']),
-          })
-        except UserNotParticipantError:
-          pass
-        except:
-          logger.exception('failed to get participant')
+        }
+        if is_private:
+          item['token'] = self.token_manager.add_token(gid)
+        gs.append(item)
 
     gs.sort(key=lambda g: g['name'])
     return web.json_response({
