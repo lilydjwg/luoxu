@@ -9,6 +9,7 @@ from aiohttp import web
 from telethon.tl.types import User, ChatPhotoEmpty
 from telethon.errors.rpcerrorlist import ChannelPrivateError, UserNotParticipantError
 from telethon import functions
+from async_lru import alru_cache
 
 from . import util
 from .types import SearchQuery, GroupNotFound
@@ -103,6 +104,7 @@ class GroupsHandler(BaseHandler):
     self.token_manager = token_manager
     self.auth_bot_token = auth_bot_token
 
+  @alru_cache(maxsize=None, ttl=86400)
   async def user_in_group(self, group_id, user_id):
     try:
       res = await self.client(functions.channels.GetParticipantRequest(
