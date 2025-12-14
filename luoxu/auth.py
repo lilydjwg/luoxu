@@ -26,7 +26,7 @@ class TokenManager:
         # hmac.compare_digest?
         return existing_token == token
 
-def Verify_telegram_oauth(bot_token, auth_str):
+def verify_telegram_oauth(bot_token, auth_str):
     padding = '=' * (4 - len(auth_str) % 4)
     auth_str += padding
     try:

@@ -12,7 +12,7 @@ from telethon import functions
 
 from . import util
 from .types import SearchQuery, GroupNotFound
-from .auth import Verify_telegram_oauth
+from .auth import verify_telegram_oauth
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ class GroupsHandler(BaseHandler):
     token = request.query.get('token')
     user_id = None
     if auth_str := request.query.get('auth'):
-      if not (user_id := Verify_telegram_oauth(self.auth_bot_token, auth_str)):
+      if not (user_id := verify_telegram_oauth(self.auth_bot_token, auth_str)):
         raise web.HTTPForbidden
 
     groups = await self.dbconn.get_groups()
