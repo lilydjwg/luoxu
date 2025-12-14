@@ -112,7 +112,7 @@ class GroupsHandler(BaseHandler):
       return True
     except UserNotParticipantError:
       return False
-    except:
+    except Exception:
       logger.exception('failed to get participant')
       return False
 

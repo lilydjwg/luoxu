@@ -31,7 +31,7 @@ def verify_telegram_oauth(bot_token, auth_str):
     auth_str += padding
     try:
       data = json.loads(base64.urlsafe_b64decode(auth_str).decode('utf-8'))
-    except:
+    except Exception:
       return None
     hash_str = ""
     text_list = []
