@@ -23,8 +23,7 @@ class TokenManager:
         self._token_dict.expire()
         if not (existing_token := self._token_dict.get(group_id)):
             return False
-        # hmac.compare_digest?
-        return existing_token == token
+        return hmac.compare_digest(existing_token, token)
 
 def verify_telegram_oauth(bot_token, auth_str):
     padding = '=' * (4 - len(auth_str) % 4)
@@ -49,7 +48,6 @@ def verify_telegram_oauth(bot_token, auth_str):
 
     secret_key = hashlib.sha256(bot_token.encode()).digest()
     hmac_hash = hmac.new(secret_key, check_str.encode(), hashlib.sha256).hexdigest()
-    # hmac.compare_digest?
-    if hmac_hash != hash_str:
-      return None
-    return data['id']
+    if hmac.compare_digest(hmac_hash, hash_str):
+      return data['id']
+    return None
