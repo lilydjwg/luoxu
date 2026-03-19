@@ -70,7 +70,7 @@ class Indexer:
     tg_config = config['telegram']
     client = create_client(tg_config)
 
-    db = PostgreStore(config['database'])
+    db = PostgreStore(config['database'], client)
     await db.setup()
     self.dbstore = db
 

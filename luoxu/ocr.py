@@ -7,14 +7,16 @@ import aiohttp
 from telethon.tl import types
 
 from .lib.expiringdict import ExpiringDict
+from .ctxvars import group_title
 
 logger = logging.getLogger(__name__)
 
 class OCRService:
-  def __init__(self, ocr_url, ocr_socket=None):
+  def __init__(self, mediamgr, ocr_url, ocr_socket=None):
     self._ocr_cache = ExpiringDict(3600)
     self._ocr_cache_lock = asyncio.Lock()
     self.ocr_url = ocr_url
+    self.mediamgr = mediamgr
 
     if ocr_socket:
       conn = aiohttp.UnixConnector(path=ocr_socket)
@@ -24,7 +26,7 @@ class OCRService:
 
     self._aiosession = session
 
-  async def ocr_img(self, client, media, group_title):
+  async def ocr_img(self, media):
     if isinstance(media, types.MessageMediaPhoto):
       key = media.photo.id
     else:
@@ -34,7 +36,7 @@ class OCRService:
       cached = self._ocr_cache.get(key)
       if cached is None:
         # coroutine cannot be awaited twice, but task can
-        fu = asyncio.create_task(self._ocr_img_no_cache(client, media, group_title))
+        fu = asyncio.create_task(self._ocr_img_no_cache(media))
         self._ocr_cache[key] = fu
 
     if cached is None:
@@ -45,7 +47,7 @@ class OCRService:
       else:
         return cached
 
-  async def _ocr_img_no_cache(self, client, media, group_title):
+  async def _ocr_img_no_cache(self, media):
     if isinstance(media, types.MessageMediaPhoto):
       key = media.photo.id
       mime_type = 'image/jpeg'
@@ -53,8 +55,14 @@ class OCRService:
       key = media.document.id
       mime_type = media.document.mime_type
 
-    logger.info('<%s> Downloading media %d...', group_title, key)
-    imgdata = await client.download_media(media, file=bytes)
+    group = group_title.get()
+    while True:
+      try:
+        imgdata = await self.mediamgr.get_media(media)
+        break
+      except asyncio.exceptions.IncompleteReadError:
+        logger.warning('<%s> download failed with IncompleteReadError, retrying after 10s...', group)
+        await asyncio.sleep(10)
 
     formdata = aiohttp.FormData()
     formdata.add_field(
@@ -62,7 +70,7 @@ class OCRService:
       filename = 'image', content_type = mime_type,
     )
     formdata.add_field('lang', 'zh-Hans')
-    logger.info('<%s> Uploading media %d to OCR service...', group_title, key)
+    logger.info('<%s> Uploading media %d to OCR service...', group, key)
     try:
       st = time.time()
       res = await self._aiosession.post(self.ocr_url, data=formdata)

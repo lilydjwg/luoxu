@@ -20,7 +20,7 @@ async def format_msg(msg, ocrsvc=None) -> Optional[str]:
 
 async def _format_msg(msg, ocrsvc=None) -> str:
   if isinstance(msg, telethon.tl.patched.MessageService):
-    # pinning messages
+    # pinning or joining messages etc
     return
 
   text = []
@@ -52,9 +52,12 @@ async def _format_msg(msg, ocrsvc=None) -> str:
     if isinstance(media, types.MessageMediaPhoto) \
        or (isinstance(media, types.MessageMediaDocument)
            and msg.media.document.mime_type.startswith('image/')):
-      if ocr_text := await ocrsvc.ocr_img(msg.client, media, msg.chat.title):
-        text.append('[image]')
-        text.extend(ocr_text)
+      try:
+        if ocr_text := await ocrsvc.ocr_img(media):
+          text.append('[image]')
+          text.extend(ocr_text)
+      except Exception as e:
+        logger.error('failed to do ocr: %r', e)
 
   text = '\n'.join(x for x in text if x)
 

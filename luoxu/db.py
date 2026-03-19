@@ -10,19 +10,21 @@ import asyncpg
 from .util import format_name, UpdateLoaded
 from .indexing import text_to_query, format_msg
 from .types import SearchQuery, GroupNotFound
-from .ctxvars import msg_source
+from .ctxvars import msg_source, group_title
 from .ocr import OCRService
+from .mediamgr import MediaMgr
 
 logger = logging.getLogger(__name__)
 
 class PostgreStore:
   SEARCH_LIMIT = 50
 
-  def __init__(self, config: dict[str, Any]) -> None:
+  def __init__(self, config: dict[str, Any], client) -> None:
     self.address = config['url']
     first_year = config.get('first_year', 2016)
+    self.mediamgr = MediaMgr(client)
     if ocr_url := config.get('ocr_url'):
-      self.ocrsvc = OCRService(ocr_url, config.get('ocr_socket'))
+      self.ocrsvc = OCRService(self.mediamgr, ocr_url, config.get('ocr_socket'))
     else:
       self.ocrsvc = None
     self.earliest_time = datetime.datetime(first_year, 1, 1).astimezone()
@@ -52,8 +54,13 @@ class PostgreStore:
 
   async def insert_messages(self, msgs, update_loaded, use_ocr = True):
     use_ocr = self.ocrsvc and use_ocr
-    data = [(msg, text) for msg in msgs
-            if (text := await format_msg(msg, self.ocrsvc if use_ocr else None)) is not None]
+    data = []
+    for msg in msgs:
+      group_title.set(msg.chat.title)
+      text = await format_msg(msg, self.ocrsvc if use_ocr else None)
+      if text is not None:
+        data.append((msg, text))
+
     if not data:
       return
 
