@@ -20,11 +20,11 @@ def format_name(user) -> str:
 def fromtimestamp(ts: int) -> datetime.datetime:
   return datetime.datetime.fromtimestamp(ts).astimezone()
 
-def run_until_sigint(fu):
+def run_until_sigint(fu, *, name=None):
   import asyncio
 
   loop = asyncio.new_event_loop()
-  fu = loop.create_task(fu)
+  fu = loop.create_task(fu, name=name)
 
   try:
     loop.run_until_complete(fu)

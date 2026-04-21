@@ -56,7 +56,7 @@ class PostgreStore:
     use_ocr = self.ocrsvc and use_ocr
     data = []
     for msg in msgs:
-      group_title.set(msg.chat.title)
+      group_title.set(getattr(msg.chat, 'title', None))
       text = await format_msg(msg, self.ocrsvc if use_ocr else None)
       if text is not None:
         data.append((msg, text))

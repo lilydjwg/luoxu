@@ -199,4 +199,4 @@ if __name__ == '__main__':
 
   config = load_config(args.config)
   indexer = Indexer(config)
-  run_until_sigint(indexer.run())
+  run_until_sigint(indexer.run(), name='indexer')
