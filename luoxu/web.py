@@ -7,10 +7,13 @@ import time
 
 from aiohttp import web
 from telethon.tl.types import User, ChatPhotoEmpty
-from telethon.errors.rpcerrorlist import ChannelPrivateError
+from telethon.errors.rpcerrorlist import ChannelPrivateError, UserNotParticipantError
+from telethon import functions
+from async_lru import alru_cache
 
 from . import util
 from .types import SearchQuery, GroupNotFound
+from .auth import verify_telegram_oauth
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +47,21 @@ def html_or_text(m):
   return ' '
 
 class SearchHandler(BaseHandler):
+  def __init__(self, dbconn, auth_enable_groups, token_manager):
+    super().__init__(dbconn)
+    self.auth_enable_groups = auth_enable_groups
+    self.token_manager = token_manager
+
   async def _get(self, request):
     try:
       q = self._parse_query(request.query)
     except Exception:
       raise web.HTTPBadRequest
+    if q.group in self.auth_enable_groups:
+      if not q.token:
+        raise web.HTTPUnauthorized
+      if not self.token_manager.is_valid(q.group, q.token):
+        raise web.HTTPForbidden
     try:
       groupinfo, messages = await self.dbconn.search(q)
     except GroupNotFound:
@@ -75,29 +88,87 @@ class SearchHandler(BaseHandler):
     terms = query.get('q')
     sender = int(query.get('sender', 0))
     start = query.get('start')
+    token = query.get('token', '')
     if start:
       start = util.fromtimestamp(int(start))
     end = query.get('end')
     if end:
       end = util.fromtimestamp(int(end))
-    return SearchQuery(group, terms, sender, start, end)
+    return SearchQuery(group, terms, sender, start, end, token)
 
 class GroupsHandler(BaseHandler):
+  def __init__(self, dbconn, client, auth_enable_groups, token_manager, auth_bot_token):
+    super().__init__(dbconn)
+    self.client = client
+    self.auth_enable_groups = set(auth_enable_groups)
+    self.token_manager = token_manager
+    self.auth_bot_token = auth_bot_token
+
+  @alru_cache(maxsize=None, ttl=86400)
+  async def user_in_group(self, group_id, user_id):
+    try:
+      res = await self.client(functions.channels.GetParticipantRequest(
+          channel=group_id,
+          participant=user_id
+      ))
+      return True
+    except UserNotParticipantError:
+      return False
+    except Exception:
+      logger.exception('failed to get participant')
+      return False
+
   async def _get(self, request):
+    group_id = request.query.get('g')
+    token = request.query.get('token')
+    user_id = None
+    if auth_str := request.query.get('auth'):
+      if not (user_id := verify_telegram_oauth(self.auth_bot_token, auth_str)):
+        raise web.HTTPForbidden
+
     groups = await self.dbconn.get_groups()
-    gs = [{
-      'group_id': str(g['group_id']),
-      'name': g['name'],
-      'pub_id': g['pub_id'],
-    } for g in groups]
+    gs = []
+    for g in groups:
+      gid = g['group_id']
+      is_private = gid in self.auth_enable_groups
+      has_access = False
+      if is_private:
+        has_access = (
+            (user_id and await self.user_in_group(gid, user_id)) or 
+            (token and group_id == str(gid) and self.token_manager.is_valid(gid, token))
+        )
+      if not is_private or has_access:
+        item = {
+          'group_id': str(gid),
+          'name': g['name'],
+          'pub_id': g['pub_id'],
+        }
+        if is_private:
+          item['token'] = self.token_manager.add_token(gid)
+        gs.append(item)
+
     gs.sort(key=lambda g: g['name'])
     return web.json_response({
       'groups': gs,
     })
 
 class NamesHandler(BaseHandler):
+  def __init__(self, dbconn, auth_enable_groups, token_manager):
+    super().__init__(dbconn)
+    self.auth_enable_groups = auth_enable_groups
+    self.token_manager = token_manager
+
   async def _get(self, request):
     group = int(request.query.get('g') or 0)
+    if self.auth_enable_groups and group == 0:
+      raise web.HTTPForbidden
+
+    if group in self.auth_enable_groups:
+      if not request.query.get('token'):
+        raise web.HTTPUnauthorized
+      if not self.token_manager.is_valid(group, request.query['token']):
+        raise web.HTTPForbidden
+
     q = request.query['q']
     names = await self.dbconn.find_names(group, q)
     return web.json_response({
@@ -174,12 +245,15 @@ def setup_app(
   *,
   prefix = '',
   origins = (),
+  auth_enable_groups = (),
+  token_manager = None,
+  auth_bot_token = None,
 ):
   app = web.Application()
   app['origins'] = origins
-  app.router.add_get(f'{prefix}/search', SearchHandler(dbconn).get)
-  app.router.add_get(f'{prefix}/groups', GroupsHandler(dbconn).get)
-  app.router.add_get(f'{prefix}/names', NamesHandler(dbconn).get)
+  app.router.add_get(f'{prefix}/search', SearchHandler(dbconn, auth_enable_groups, token_manager).get)
+  app.router.add_get(f'{prefix}/groups', GroupsHandler(dbconn, client, auth_enable_groups, token_manager, auth_bot_token).get)
+  app.router.add_get(f'{prefix}/names', NamesHandler(dbconn, auth_enable_groups, token_manager).get)
 
   if client:
     ah = AvatarHandler(client, cache_dir, default_avatar, ghost_avatar)
