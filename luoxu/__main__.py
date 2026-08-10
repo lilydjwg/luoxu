@@ -13,6 +13,7 @@ from aiohttp import web
 from .db import PostgreStore
 from .group import GroupHistoryIndexer
 from .util import load_config, UpdateLoaded, create_client
+from .auth import TokenManager
 from . import web as myweb
 from .ctxvars import msg_source
 
@@ -74,28 +75,15 @@ class Indexer:
     await db.setup()
     self.dbstore = db
 
-    web_config = config['web']
-    cache_dir = web_config['cache_dir']
-    os.makedirs(cache_dir, exist_ok=True)
-    app = myweb.setup_app(
-      db, client,
-      os.path.abspath(cache_dir),
-      os.path.abspath(web_config['default_avatar']),
-      os.path.abspath(web_config['ghost_avatar']),
-      prefix = web_config['prefix'],
-      origins = web_config['origins'],
-    )
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(
-      runner,
-      web_config['listen_host'], web_config['listen_port'],
-    )
-    await site.start()
+    ttl = int(tg_config.get('auth_expire', 3600))
+    self.token_manager = TokenManager(ttl)
+
+    self.auth_bot_token = tg_config.get('auth_bot_token', None)
 
     await client.start(tg_config['account'])
     index_group_ids = []
     ocr_ignore_group_ids = []
+    auth_enable_group_ids = []
     group_entities = []
     dialogs = None
     for g in tg_config['index_groups']:
@@ -113,14 +101,40 @@ class Indexer:
       if g in tg_config.get('ocr_ignore_groups', ()):
         ocr_ignore_group_ids.append(group.id)
 
+      if g in tg_config.get('auth_enable_groups', ()):
+        auth_enable_group_ids.append(group.id)
+
       index_group_ids.append(group.id)
       group_entities.append(group)
 
     self.ocr_ignore_group_ids = ocr_ignore_group_ids
+    self.auth_enable_group_ids = auth_enable_group_ids
     client.add_event_handler(self.on_message, events.NewMessage(chats=index_group_ids))
     client.add_event_handler(self.on_message, events.MessageEdited(chats=index_group_ids))
 
     await self.load_plugins(client)
+
+    web_config = config['web']
+    cache_dir = web_config['cache_dir']
+    os.makedirs(cache_dir, exist_ok=True)
+    app = myweb.setup_app(
+      db, client,
+      os.path.abspath(cache_dir),
+      os.path.abspath(web_config['default_avatar']),
+      os.path.abspath(web_config['ghost_avatar']),
+      prefix = web_config['prefix'],
+      origins = web_config['origins'],
+      auth_enable_groups = self.auth_enable_group_ids,
+      token_manager = self.token_manager,
+      auth_bot_token = self.auth_bot_token,
+    )
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(
+      runner,
+      web_config['listen_host'], web_config['listen_port'],
+    )
+    await site.start()
 
     try:
       while True:
