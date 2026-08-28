@@ -12,6 +12,8 @@ create table messages (
   from_user bigint,
   from_user_name text not null,
   text text not null,
+  in_reply_to bigint,
+  in_reply_to_group bigint,
   created_at timestamp with time zone not null,
   updated_at timestamp with time zone
 ) PARTITION BY RANGE (created_at);

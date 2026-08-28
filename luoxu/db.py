@@ -36,13 +36,17 @@ class PostgreStore:
   async def _insert_one_message(self, conn, msg, text):
     u = await msg.get_sender()
     sql = '''
-      INSERT INTO messages (group_id, msgid, from_user, from_user_name, text, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO messages (group_id, msgid, from_user, from_user_name, text, created_at, updated_at,
+        in_reply_to, in_reply_to_group)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       ON CONFLICT (group_id, msgid, created_at) DO UPDATE
         SET text = EXCLUDED.text, updated_at = EXCLUDED.updated_at
     '''
     logger.info('%7s <%s> [%s] %s: %s', msg_source.get(), getattr(msg.chat, 'title', None), msg.id, format_name(u), text)
-    await conn.execute(sql,
+    in_reply_to = msg.reply_to_msg_id
+    in_reply_to_group = (chat := msg.reply_to_chat) and chat.id
+    await conn.execute(
+      sql,
       msg.peer_id.channel_id,
       msg.id,
       u.id if u else None,
@@ -50,6 +54,7 @@ class PostgreStore:
       text,
       msg.date,
       msg.edit_date,
+      in_reply_to, in_reply_to_group,
     )
 
   async def insert_messages(self, msgs, update_loaded, use_ocr = True):
