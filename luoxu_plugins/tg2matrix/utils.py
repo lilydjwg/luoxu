@@ -14,6 +14,7 @@ def recv_n(sock, n):
 
 def send_message(socket_path, msg):
   s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+  s.settimeout(0.5)
   s.connect(socket_path)
   m = json.dumps(msg, ensure_ascii=False).encode()
   size = struct.pack('>I', len(m))
