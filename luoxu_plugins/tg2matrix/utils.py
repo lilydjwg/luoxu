@@ -1,31 +1,30 @@
-import socket
 import json
 import html
 import struct
 from typing import Literal, Any
+import asyncio
 
 from telethon.helpers import add_surrogate, del_surrogate
 
-def recv_n(sock, n):
-  data = b''
-  while (remaining := n - len(data)) > 0:
-    data += sock.recv(remaining)
-  return data
+async def send_message(socket_path, msg):
+  reader, writer = await asyncio.open_unix_connection(socket_path)
 
-def send_message(socket_path, msg):
-  s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-  s.settimeout(0.5)
-  s.connect(socket_path)
-  m = json.dumps(msg, ensure_ascii=False).encode()
-  size = struct.pack('>I', len(m))
-  s.sendall(size)
-  s.sendall(m)
+  try:
+    m = json.dumps(msg, ensure_ascii=False).encode()
+    size = struct.pack('>I', len(m))
 
-  size = recv_n(s, 4)
-  n = struct.unpack('>I', size)[0]
-  ret = recv_n(s, n)
-  s.close()
-  return json.loads(ret)['id']
+    writer.write(size + m)
+    await writer.drain()
+
+    size = await reader.readexactly(4)
+    n = struct.unpack('>I', size)[0]
+
+    ret = await reader.readexactly(n)
+    return json.loads(ret)['id']
+
+  finally:
+    writer.close()
+    await writer.wait_closed()
 
 def tg_message_to_html(msg):
   ret = []

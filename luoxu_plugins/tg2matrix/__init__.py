@@ -3,6 +3,7 @@ import os
 import sqlite3
 from typing import Optional
 import datetime
+import asyncio
 
 from telethon import events
 
@@ -122,7 +123,8 @@ class TgChannelWatcher:
     if reply_to:
       mmsg['reply_to'] = reply_to
 
-    event_id = utils.send_message(self.socket_path, mmsg)
+    async with asyncio.timeout(60):
+      event_id = await utils.send_message(self.socket_path, mmsg)
     self.db.save_matrix_event_id(channel_id, msg.id, event_id, reply_to)
 
 def register(indexer, client):
